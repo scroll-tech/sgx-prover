@@ -1,0 +1,56 @@
+[workspace]
+resolver = "2"
+members = ["crates/*", "bin/*"]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+authors = ["Automata Team"]
+homepage = "https://www.ata.network/"
+
+[workspace.dependencies]
+scroll-executor = { path = "crates/executor" }
+scroll-da-codec = { path = "crates/da-codec" }
+scroll-verifier = { path = "crates/verifier" }
+
+base = { git = "https://github.com/automata-network/base-rs", features = ["prover"] }
+
+scroll-revm = { package = "revm", git = "https://github.com/automata-network/scroll-revm", branch = "scroll-evm-executor/v41", default-features = false, features = ["scroll-default-handler", "std", "optional_no_base_fee", "scroll-poseidon-codehash", "serde"] }
+zktrie = { git = "https://github.com/scroll-tech/zktrie.git", branch = "main", features= ["rs_zktrie"] }
+eth-types = { git = "https://github.com/scroll-tech/zkevm-circuits", features = ["scroll"], branch = "feat/rkyv" }
+mpt-zktrie = { git = "https://github.com/scroll-tech/zkevm-circuits", branch = "feat/rkyv" }
+scroll-zstd = { git = "https://github.com/scroll-tech/da-codec" }
+scroll-zstd-encoder = { git = "https://github.com/scroll-tech/da-codec", package = "encoder" }
+
+alloy = { version = "0.2", default-features = false, features = ["std", "rlp", "serde"] }
+alloy-rlp = { version = "0.3", features = ["derive"] }
+
+serde = { version = "=1.0.197", features = ["derive"] }
+c-kzg = { version = "1", default-features = false, features = ["std", "ethereum_kzg_settings"] }
+blst = { version = "=0.3.13" } # make sure the patch takes effect
+hex = "0.4.3"
+lazy_static = "1.5.0"
+env_logger = { version = "0.11" }
+log = { version = "0.4" }
+serde_json = { version = "1" }
+
+automata-sgx-sdk = { git = "https://github.com/automata-network/automata-sgx-sdk" }
+automata-build-script = { git = "https://github.com/automata-network/automata-sgx-sdk" }
+
+[patch.crates-io]
+ethers-core = { git = "https://github.com/scroll-tech/ethers-rs.git", branch = "feat/rkyv" }
+ethers-signers  = { git = "https://github.com/scroll-tech/ethers-rs.git", branch = "feat/rkyv" }
+primitive-types = { git = "https://github.com/scroll-tech/parity-common.git", branch = "feat/rkyv" }
+ethereum-types = { git = "https://github.com/scroll-tech/parity-common.git", branch = "feat/rkyv" }
+ff = { git = "https://github.com/scroll-tech/ff", branch = "feat/sp1" }
+
+blst = { git = "https://github.com/automata-network/blst", branch = "teaclave_2.0_v0.3.13" }
+ring = { git = "https://github.com/automata-network/ring-sgx" }
+
+[patch.'https://github.com/scroll-tech/zstd-rs']
+zstd = { git = "https://github.com/automata-network/scroll-zstd-rs", branch = "hack/mul-block-2.0"}
+
+[profile.release]
+debug-assertions = true
+debug = 1
+

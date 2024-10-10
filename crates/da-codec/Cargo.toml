@@ -1,0 +1,17 @@
+[package]
+name = "scroll-da-codec"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+base.workspace = true
+hex.workspace = true
+serde_json.workspace = true
+blst.workspace = true
+c-kzg.workspace = true
+lazy_static.workspace = true
+log.workspace = true
+serde.workspace = true
+scroll-zstd-encoder.workspace = true
+
+scroll-executor.workspace = true

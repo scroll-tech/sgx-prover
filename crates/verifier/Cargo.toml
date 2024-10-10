@@ -1,0 +1,21 @@
+[package]
+name = "scroll-verifier"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+scroll-executor.workspace = true
+scroll-da-codec.workspace = true
+
+lazy_static.workspace = true
+log.workspace = true
+rlp = "0.5.2"
+serde.workspace = true
+serde_json.workspace = true
+scroll-zstd.workspace = true
+scroll-zstd-encoder.workspace = true
+c-kzg.workspace = true
+hex.workspace = true
+blst.workspace = true
+base.workspace = true
+alloy.workspace = true

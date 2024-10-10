@@ -1,0 +1,12 @@
+[package]
+name = "scroll-executor"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+scroll-revm.workspace = true
+mpt-zktrie.workspace = true
+zktrie.workspace = true
+eth-types.workspace = true
+serde.workspace = true
+base.workspace = true
