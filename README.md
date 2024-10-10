@@ -1,5 +1,5 @@
-# scroll-verifier
-
+# Scroll Verifier
+[![Automata SGX SDK](https://img.shields.io/badge/Power%20By-Automata%20SGX%20SDK-orange.svg)](https://github.com/automata-network/automata-sgx-sdk)
 
 ## Generate Signing Key
 ```
