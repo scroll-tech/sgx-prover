@@ -24,9 +24,9 @@ pub struct ProveBatchResponse {
 sol! {
     #[derive(Default, Serialize)]
     struct ProveBatchSignatureData {
-        bytes32 batch_hash;
         bytes32 prev_state_root;
         bytes32 post_state_root;
+        bytes32 batch_hash;
         bytes32 post_withdraw_root;
     }
 }
