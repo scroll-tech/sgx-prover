@@ -24,6 +24,7 @@ enclave {
     from "sgx_process.edl" import *;
     from "sgx_tstd.edl" import *;
     from "sgx_cpuid.edl" import *;
+    from "sgx_dcap.edl" import *;
 
     trusted {
         public sgx_status_t enclave_entrypoint();

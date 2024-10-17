@@ -21,3 +21,21 @@ Cargo.lock
 #.idea/
 bin/sgx-scroll-verifier/sgx/private.pem
 testdata/downloaded/
+
+
+# contracts
+
+# Compiler files
+contracts/cache/
+contracts/out/
+
+# Ignores development broadcast logs
+contracts/broadcast
+contracts/broadcast/*/31337/
+contracts/broadcast/**/dry-run/
+
+# Docs
+contracts/docs/
+
+# Dotenv file
+contracts/.env

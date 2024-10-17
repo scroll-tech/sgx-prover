@@ -1,0 +1,15 @@
+[package]
+name = "tee"
+edition.workspace = true
+version.workspace = true
+
+[features]
+tstd_enclave = ["automata-sgx-sdk/tstd_enclave"]
+
+[dependencies]
+base.workspace = true
+rand.workspace = true
+alloy.workspace = true
+log.workspace = true
+automata-sgx-sdk.workspace = true
+secp256k1.workspace = true

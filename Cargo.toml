@@ -9,9 +9,11 @@ authors = ["Automata Team"]
 homepage = "https://www.ata.network/"
 
 [workspace.dependencies]
+app-scroll-verifier = { path = "crates/app-scroll-verifier" }
 scroll-executor = { path = "crates/executor" }
 scroll-da-codec = { path = "crates/da-codec" }
 scroll-verifier = { path = "crates/verifier" }
+tee = { path = "crates/tee" }
 
 base = { git = "https://github.com/automata-network/base-rs", features = ["prover"] }
 
@@ -22,7 +24,7 @@ mpt-zktrie = { git = "https://github.com/scroll-tech/zkevm-circuits", branch = "
 scroll-zstd = { git = "https://github.com/scroll-tech/da-codec" }
 scroll-zstd-encoder = { git = "https://github.com/scroll-tech/da-codec", package = "encoder" }
 
-alloy = { version = "0.2", default-features = false, features = ["std", "rlp", "serde"] }
+alloy = { version = "0.2", default-features = false, features = ["std", "rlp", "serde", "json"] }
 alloy-rlp = { version = "0.3", features = ["derive"] }
 
 serde = { version = "=1.0.197", features = ["derive"] }
@@ -33,9 +35,16 @@ lazy_static = "1.5.0"
 env_logger = { version = "0.11" }
 log = { version = "0.4" }
 serde_json = { version = "1" }
+rand = "0.8.5"
 
 automata-sgx-sdk = { git = "https://github.com/automata-network/automata-sgx-sdk" }
 automata-build-script = { git = "https://github.com/automata-network/automata-sgx-sdk" }
+
+secp256k1 = { version = "0.29", default-features = false, features = [
+    "global-context",
+    "recovery",
+    "rand",
+] }
 
 [patch.crates-io]
 ethers-core = { git = "https://github.com/scroll-tech/ethers-rs.git", branch = "feat/rkyv" }

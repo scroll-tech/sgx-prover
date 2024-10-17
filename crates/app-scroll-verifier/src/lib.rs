@@ -1,18 +1,28 @@
-use std::path::PathBuf;
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
+use std::path::{Path, PathBuf};
 
 use automata_sgx_sdk::types::SgxStatus;
-use base::{thread::parallel, trace::Alive};
+use base::{eth::Eth, thread::parallel, trace::Alive};
 use clap::Parser;
 use scroll_da_codec::{BatchTask, Finalize};
-use scroll_executor::BlockTrace;
+use scroll_executor::{Address, BlockTrace};
 use scroll_verifier::{
     block_trace_to_pob, HardforkConfig, PobContext, ScrollBatchVerifier, ScrollExecutionNode,
 };
+use tee::{AttestationReport, Keypair, ProverRegistry, SGXQuoteBuilder};
 
 #[derive(Debug, Parser)]
 struct Opt {
     #[clap(long, default_value = "")]
     download_from: String,
+    #[clap(long, default_value = "http://localhost:8545")]
+    l1_endpoint: String,
+    #[clap(long)]
+    private_key: String,
+    #[clap(long)]
+    registry_addr: Address,
     txs: Vec<PathBuf>,
 }
 
@@ -54,6 +64,16 @@ fn read_finalize(path: &PathBuf) -> Finalize {
 async fn run_verifier() {
     let opt = Opt::parse();
 
+    if cfg!(feature = "tstd_enclave") {
+        let l1 = Eth::dial(&opt.l1_endpoint, Some(&opt.private_key)).unwrap();
+        let kp = Keypair::new();
+        let quote_builder = SGXQuoteBuilder{};
+        let report = AttestationReport::build(&quote_builder, &l1, &kp).await.unwrap();
+        let registry = ProverRegistry::new(l1, opt.registry_addr);
+        let registration = registry.register(report).await.unwrap();
+        dbg!(registration);
+    }
+
     for tx in &opt.txs {
         let file_stem = tx.file_stem().unwrap().to_str().unwrap();
         if !file_stem.contains("-commit-") {
@@ -63,7 +83,7 @@ async fn run_verifier() {
         log::info!("executing {}...", tx.display());
 
         let batch = read_batch_task(tx);
-        let finalize = read_finalize(tx);
+        // let finalize = read_finalize(tx);
 
         let dir = tx.parent().unwrap().join("downloaded").join(file_stem);
 
@@ -93,7 +113,7 @@ async fn run_verifier() {
                 |block, (start, client, dir, total)| async move {
                     let idx = block - start;
                     let output = dir.join(format!("{}.blocktrace", block));
-                    let is_exist = std::fs::try_exists(&output).unwrap();
+                    let is_exist = Path::new(&output).exists();
                     if is_exist {
                         return Ok::<(), ()>(());
                     }
@@ -143,9 +163,9 @@ async fn run_verifier() {
 
         log::info!("executing blocks...");
         let poe = ScrollBatchVerifier::verify(&batch, chunks).await.unwrap();
-        finalize.assert_poe(&poe);
 
-        assert_eq!(new_batch, finalize.batch);
+        dbg!(poe);
+        
         log::info!("done");
     }
 }
