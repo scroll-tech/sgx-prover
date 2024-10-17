@@ -9,5 +9,6 @@ anyhow.workspace = true
 jsonrpsee.workspace = true
 log.workspace = true
 scroll-executor.workspace = true
+secp256k1.workspace = true
 serde.workspace = true
 tokio.workspace = true

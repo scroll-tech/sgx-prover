@@ -3641,6 +3641,7 @@ dependencies = [
  "jsonrpsee",
  "log",
  "scroll-executor",
+ "secp256k1",
  "serde",
  "tokio",
 ]
