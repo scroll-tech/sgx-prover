@@ -6,10 +6,14 @@ use jsonrpsee::core::async_trait;
 use jsonrpsee::server::Server;
 use jsonrpsee::types::ErrorObjectOwned;
 
+use scroll_executor::ExecutionResult;
+
 use crate::enclave_signer::EnclaveSigner;
-use crate::error::OkOrInternalError;
+use crate::error::*;
 use crate::methods::ScrollSgxServer;
+use crate::prove::execute_block;
 use crate::types::*;
+use crate::utils::*;
 
 pub struct ScrollSgxServerImpl {
     signer: EnclaveSigner,
@@ -31,13 +35,43 @@ impl ScrollSgxServer for ScrollSgxServerImpl {
 
     async fn prove_block(
         &self,
-        _req: ProveBlockRequest,
+        req: ProveBlockRequest,
     ) -> Result<ProveBlockResponse, ErrorObjectOwned> {
-        // simple signing example
-        let data = ProveBlockSignatureData::default();
-        let _signature = self.signer.sign(data).await.ok_or_internal_error()?;
+        if ethers_hash_to_alloy(req.block_trace.storage_trace.root_before) != req.prev_state_root {
+            return Err(invalid_params("prev_state_root mismatch"));
+        }
 
-        todo!()
+        let block_hash = match req.block_trace.header.hash {
+            Some(h) => ethers_hash_to_alloy(h),
+            None => return Err(invalid_params("missing block hash")),
+        };
+
+        let ExecutionResult {
+            new_state_root: post_state_root,
+            new_withdrawal_root: post_withdraw_root,
+        } = execute_block(&req)
+            .await
+            .map_err(|e| format!("{e:?}"))
+            .ok_or_internal_error()?;
+
+        if ethers_hash_to_alloy(req.block_trace.storage_trace.root_after) != post_state_root {
+            return Err(invalid_params("post_state_root mismatch"));
+        }
+
+        let sig_data = ProveBlockSignatureData {
+            block_hash,
+            prev_state_root: req.prev_state_root,
+            post_state_root,
+            post_withdraw_root,
+        };
+
+        let signature = self.signer.sign(sig_data).await.ok_or_internal_error()?;
+
+        Ok(ProveBlockResponse {
+            post_state_root,
+            post_withdraw_root,
+            signature,
+        })
     }
 
     async fn prove_batch(

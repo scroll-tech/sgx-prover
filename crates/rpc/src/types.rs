@@ -6,15 +6,15 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProveBlockRequest {
-    prev_state_root: B256,
-    block_trace: BlockTrace,
+    pub prev_state_root: B256,
+    pub block_trace: BlockTrace,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProveBlockResponse {
-    post_state_root: B256,
-    post_withdraw_root: B256,
-    signature: Signature,
+    pub post_state_root: B256,
+    pub post_withdraw_root: B256,
+    pub signature: Signature,
 }
 
 sol! {

@@ -3638,9 +3638,11 @@ version = "0.1.0"
 dependencies = [
  "alloy",
  "anyhow",
+ "eth-types",
  "jsonrpsee",
  "log",
  "scroll-executor",
+ "scroll-verifier",
  "serde",
  "tokio",
 ]
