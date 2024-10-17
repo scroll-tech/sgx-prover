@@ -1,4 +1,5 @@
 mod client;
+mod enclave_signer;
 mod methods;
 mod server;
 mod types;

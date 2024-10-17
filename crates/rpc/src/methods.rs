@@ -1,5 +1,7 @@
 use crate::types::*;
 
+use alloy::primitives::Address;
+
 use jsonrpsee::proc_macros::rpc;
 use jsonrpsee::types::ErrorObjectOwned;
 
@@ -7,6 +9,9 @@ use jsonrpsee::types::ErrorObjectOwned;
 pub trait ScrollSgx {
     #[method(name = "hello")]
     async fn hello(&self) -> Result<String, ErrorObjectOwned>;
+
+    #[method(name = "getAddress")]
+    async fn get_address(&self) -> Result<Address, ErrorObjectOwned>;
 
     #[method(name = "generateAttestationReport")]
     async fn generate_attestation_report(&self) -> Result<String, ErrorObjectOwned>;

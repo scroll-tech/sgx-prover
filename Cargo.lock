@@ -593,6 +593,8 @@ dependencies = [
 name = "app-host"
 version = "0.1.0"
 dependencies = [
+ "env_logger",
+ "log",
  "rpc",
 ]
 
@@ -3637,7 +3639,9 @@ dependencies = [
  "alloy",
  "anyhow",
  "jsonrpsee",
+ "log",
  "scroll-executor",
+ "secp256k1",
  "serde",
  "tokio",
 ]
