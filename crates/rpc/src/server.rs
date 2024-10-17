@@ -19,13 +19,6 @@ impl ScrollSgxServer for ScrollSgxServerImpl {
         todo!()
     }
 
-    async fn prove_block(
-        &self,
-        _req: ProveBlockRequest,
-    ) -> Result<ProveBlockResponse, ErrorObjectOwned> {
-        todo!()
-    }
-
     async fn prove_batch(
         &self,
         _req: ProveBatchRequest,
