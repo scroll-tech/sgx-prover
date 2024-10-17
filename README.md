@@ -37,7 +37,7 @@ $ SGX_MODE=SW cargo sgx run --release
 $ STD_MODE=true cargo sgx run --release
 ```
 
-## Run Enclave
+## Run Host
 
 ```
 $ cargo run --release --bin sgx-scroll-host
