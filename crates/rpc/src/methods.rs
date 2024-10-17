@@ -16,12 +16,6 @@ pub trait ScrollSgx {
     #[method(name = "generateAttestationReport")]
     async fn generate_attestation_report(&self) -> Result<String, ErrorObjectOwned>;
 
-    #[method(name = "proveBlock")]
-    async fn prove_block(
-        &self,
-        req: ProveBlockRequest,
-    ) -> Result<ProveBlockResponse, ErrorObjectOwned>;
-
     #[method(name = "proveBatch")]
     async fn prove_batch(
         &self,

@@ -5,38 +5,12 @@ use alloy::sol;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ProveBlockRequest {
-    prev_state_root: B256,
-    block_trace: BlockTrace,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ProveBlockResponse {
-    post_state_root: B256,
-    post_withdraw_root: B256,
-    signature: Signature,
-}
-
-sol! {
-    #[derive(Default, Serialize)]
-    struct ProveBlockSignatureData {
-        bytes32 block_hash;
-        bytes32 prev_state_root;
-        bytes32 post_state_root;
-        bytes32 post_withdraw_root;
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProveBatchRequest {
     prev_batch_header: Bytes,
-    batch_version: u8,
-    // blocks
-    // chunks
     prev_state_root: B256,
-    state_roots: Vec<B256>,
-    withdraw_roots: Vec<B256>,
-    signatures: Vec<Signature>,
+    batch_version: u8,
+    blocks: Vec<BlockTrace>,
+    chunks: Vec<Vec<u64>>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -50,16 +24,17 @@ pub struct ProveBatchResponse {
 sol! {
     #[derive(Default, Serialize)]
     struct ProveBatchSignatureData {
-        bytes32 prev_state_root;
-        bytes32 prev_batch_hash;
-        bytes32 post_state_root;
         bytes32 batch_hash;
+        bytes32 prev_state_root;
+        bytes32 post_state_root;
         bytes32 post_withdraw_root;
     }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProveBundleRequest {
+    last_finalized_batch_header: Bytes,
+    prev_state_root: B256,
     batch_headers: Vec<Bytes>,
     state_roots: Vec<B256>,
     withdraw_roots: Vec<B256>,

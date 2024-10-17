@@ -29,21 +29,14 @@ impl ScrollSgxServer for ScrollSgxServerImpl {
         todo!()
     }
 
-    async fn prove_block(
-        &self,
-        _req: ProveBlockRequest,
-    ) -> Result<ProveBlockResponse, ErrorObjectOwned> {
-        // simple signing example
-        let data = ProveBlockSignatureData::default();
-        let _signature = self.signer.sign(data).await.ok_or_internal_error()?;
-
-        todo!()
-    }
-
     async fn prove_batch(
         &self,
         _req: ProveBatchRequest,
     ) -> Result<ProveBatchResponse, ErrorObjectOwned> {
+        // simple signing example
+        let data = ProveBatchSignatureData::default();
+        let _signature = self.signer.sign(data).await.ok_or_internal_error()?;
+
         todo!()
     }
 
