@@ -1,0 +1,10 @@
+[package]
+name = "sgx-scroll-host"
+edition.workspace = true
+version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[dependencies]
+app-host.workspace = true
+tokio.workspace = true

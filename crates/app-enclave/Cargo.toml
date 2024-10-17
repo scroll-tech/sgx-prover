@@ -1,0 +1,18 @@
+[package]
+name = "app-enclave"
+version.workspace = true
+edition.workspace = true
+
+[features]
+tstd_enclave = ["automata-sgx-sdk/tstd_enclave", "tee/tstd_enclave"]
+
+[lib]
+name = "app_enclave"
+crate-type = ["staticlib"]
+
+[dependencies]
+automata-sgx-sdk.workspace = true
+env_logger.workspace = true
+rpc.workspace = true
+tee.workspace = true
+tokio.workspace = true

@@ -9,11 +9,13 @@ authors = ["Automata Team"]
 homepage = "https://www.ata.network/"
 
 [workspace.dependencies]
-app-scroll-verifier = { path = "crates/app-scroll-verifier" }
+app-enclave = { path = "crates/app-enclave" }
+app-host = { path = "crates/app-host" }
 scroll-executor = { path = "crates/executor" }
 scroll-da-codec = { path = "crates/da-codec" }
 scroll-verifier = { path = "crates/verifier" }
 tee = { path = "crates/tee" }
+rpc = { path = "crates/rpc" }
 
 base = { git = "https://github.com/automata-network/base-rs", features = ["prover"] }
 
@@ -45,6 +47,10 @@ secp256k1 = { version = "0.29", default-features = false, features = [
     "recovery",
     "rand",
 ] }
+
+anyhow = "1.0.89"
+jsonrpsee = { git = "https://github.com/automata-network/jsonrpsee", features = ["client", "server", "macros"] }
+tokio = { version = "1.0", features = ["macros", "net", "rt-multi-thread"] }
 
 [patch.crates-io]
 ethers-core = { git = "https://github.com/scroll-tech/ethers-rs.git", branch = "feat/rkyv" }
