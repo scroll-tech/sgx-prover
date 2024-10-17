@@ -1,0 +1,12 @@
+[package]
+name = "rpc"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+alloy.workspace = true
+anyhow.workspace = true
+jsonrpsee.workspace = true
+scroll-executor.workspace = true
+serde.workspace = true
+tokio.workspace = true

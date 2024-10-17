@@ -20,18 +20,25 @@ $ ENV=local_sepolia ./scripts/deploy_contract.sh
 
 ## Generate Signing Key
 ```
-$ cargo sgx gen-key bin/sgx-scroll-verifier/sgx/private.pem
+$ cargo sgx gen-key bin/sgx-scroll-enclave/sgx/private.pem
 ```
 
-## Run Demo
+## Run Enclave
 
 ```
-# cargo install cargo-sgx
-$ cargo sgx run --release -- --download-from ${scroll_node} testdata/scroll-mainnet-v3-commit-310004.calldata --private-key 0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a --registry-addr 0x02D6f953722A085cC8325D442d931aD6c12a7210
+$ cargo install cargo-sgx
+
+$ cargo sgx run --release
 
 # run in non-SGX simulation mode
-$ SGX_MODE=SW cargo sgx run --release -- --download-from ${scroll_node} testdata/scroll-mainnet-v3-commit-310004.calldata --private-key 0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a --registry-addr 0x02D6f953722A085cC8325D442d931aD6c12a7210
+$ SGX_MODE=SW cargo sgx run --release
 
 # run in Apple Silicon Chips, the on-chain functionality will be turned off
-$ STD_MODE=true cargo sgx run --release -- --download-from ${scroll_node} testdata/scroll-mainnet-v3-commit-310004.calldata --private-key 0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a --registry-addr 0x02D6f953722A085cC8325D442d931aD6c12a7210
+$ STD_MODE=true cargo sgx run --release
+```
+
+## Run Host
+
+```
+$ cargo run --release --bin sgx-scroll-host
 ```
