@@ -7,6 +7,7 @@ use jsonrpsee::server::Server;
 use jsonrpsee::types::ErrorObjectOwned;
 
 use crate::enclave_signer::EnclaveSigner;
+use crate::error::OkOrInternalError;
 use crate::methods::ScrollSgxServer;
 use crate::types::*;
 
@@ -34,7 +35,7 @@ impl ScrollSgxServer for ScrollSgxServerImpl {
     ) -> Result<ProveBlockResponse, ErrorObjectOwned> {
         // simple signing example
         let data = ProveBlockSignatureData::default();
-        let _signature = self.signer.sign(data);
+        let _signature = self.signer.sign(data).await.ok_or_internal_error()?;
 
         todo!()
     }
