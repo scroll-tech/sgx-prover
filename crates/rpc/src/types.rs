@@ -8,8 +8,8 @@ pub struct ProveBatchRequest {
     prev_batch_header: Bytes,
     prev_state_root: B256,
     batch_version: u8,
-    // blocks
-    // chunks
+    blocks: Vec<BlockTrace>,
+    chunks: Vec<Vec<u64>>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
