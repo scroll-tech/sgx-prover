@@ -7,9 +7,11 @@ use jsonrpsee::server::Server;
 use jsonrpsee::types::ErrorObjectOwned;
 
 use crate::enclave_signer::EnclaveSigner;
-use crate::error::OkOrInternalError;
+use crate::error::*;
 use crate::methods::ScrollSgxServer;
+use crate::prove::prove_batch;
 use crate::types::*;
+use crate::utils::*;
 
 pub struct ScrollSgxServerImpl {
     signer: EnclaveSigner,
@@ -31,13 +33,26 @@ impl ScrollSgxServer for ScrollSgxServerImpl {
 
     async fn prove_batch(
         &self,
-        _req: ProveBatchRequest,
+        req: ProveBatchRequest,
     ) -> Result<ProveBatchResponse, ErrorObjectOwned> {
-        // simple signing example
-        let data = ProveBatchSignatureData::default();
-        let _signature = self.signer.sign(data).await.ok_or_internal_error()?;
+        if req.blocks.len() == 0 {
+            return Err(invalid_params("empty block list"));
+        }
 
-        todo!()
+        if ethers_hash_to_alloy(req.blocks[0].storage_trace.root_before) != req.prev_state_root {
+            return Err(invalid_params("prev_state_root mismatch"));
+        }
+
+        let sig_data = prove_batch(req).await.ok_or_internal_error()?;
+
+        let signature = self.signer.sign(&sig_data).await.ok_or_internal_error()?;
+
+        Ok(ProveBatchResponse {
+            batch_hash: sig_data.batch_hash,
+            post_state_root: sig_data.post_state_root,
+            post_withdraw_root: sig_data.post_withdraw_root,
+            signature,
+        })
     }
 
     async fn prove_bundle(
