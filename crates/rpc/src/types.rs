@@ -50,6 +50,7 @@ pub struct ProveBundleResponse {
 sol! {
     #[derive(Default, Serialize)]
     struct ProveBundleSignatureData {
+        uint64 layer2ChainId;
         uint32 numBatches;
         bytes32 prev_state_root;
         bytes32 prev_batch_hash;
