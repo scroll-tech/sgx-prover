@@ -1,6 +1,7 @@
 use scroll_executor::BlockTrace;
 
 use alloy::primitives::{Bytes, Signature, B256};
+use alloy::sol;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -20,6 +21,17 @@ pub struct ProveBatchResponse {
     signature: Signature,
 }
 
+sol! {
+    #[derive(Default, Serialize)]
+    struct ProveBatchSignatureData {
+        uint64 layer2ChainId;
+        bytes32 prevStateRoot;
+        bytes32 postStateRoot;
+        bytes32 batchHash;
+        bytes32 postWithdrawRoot;
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProveBundleRequest {
     last_finalized_batch_header: Bytes,
@@ -34,4 +46,17 @@ pub struct ProveBundleRequest {
 pub struct ProveBundleResponse {
     public_input: Bytes,
     signature: Signature,
+}
+
+sol! {
+    #[derive(Default, Serialize)]
+    struct ProveBundleSignatureData {
+        uint64 layer2ChainId;
+        uint32 numBatches;
+        bytes32 prevStateRoot;
+        bytes32 prevBatchHash;
+        bytes32 postStateRoot;
+        bytes32 batchHash;
+        bytes32 postWithdrawRoot;
+    }
 }
