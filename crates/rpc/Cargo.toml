@@ -8,6 +8,7 @@ alloy.workspace = true
 anyhow.workspace = true
 jsonrpsee.workspace = true
 log.workspace = true
+scroll-da-codec.workspace = true
 scroll-executor.workspace = true
 serde.workspace = true
 tokio.workspace = true

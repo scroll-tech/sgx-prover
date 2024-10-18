@@ -3640,6 +3640,7 @@ dependencies = [
  "anyhow",
  "jsonrpsee",
  "log",
+ "scroll-da-codec",
  "scroll-executor",
  "serde",
  "tokio",

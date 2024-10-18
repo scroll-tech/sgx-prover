@@ -78,6 +78,16 @@ impl DABatch {
         }
     }
 
+    pub fn parent_batch_hash(&self) -> B256 {
+        match self {
+            Self::V0(b) => b.parent_batch_hash(),
+            Self::V1(b) => b.parent_batch_hash(),
+            Self::V2(b) => b.parent_batch_hash(),
+            Self::V3(b) => b.parent_batch_hash(),
+            Self::V4(b) => b.parent_batch_hash(),
+        }
+    }
+
     pub fn encode(&self) -> Vec<u8> {
         match self {
             Self::V0(b) => b.encode(),
