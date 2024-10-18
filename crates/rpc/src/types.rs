@@ -24,10 +24,11 @@ pub struct ProveBatchResponse {
 sol! {
     #[derive(Default, Serialize)]
     struct ProveBatchSignatureData {
-        bytes32 prev_state_root;
-        bytes32 post_state_root;
-        bytes32 batch_hash;
-        bytes32 post_withdraw_root;
+        uint64 layer2ChainId;
+        bytes32 prevStateRoot;
+        bytes32 postStateRoot;
+        bytes32 batchHash;
+        bytes32 postWithdrawRoot;
     }
 }
 
@@ -52,10 +53,10 @@ sol! {
     struct ProveBundleSignatureData {
         uint64 layer2ChainId;
         uint32 numBatches;
-        bytes32 prev_state_root;
-        bytes32 prev_batch_hash;
-        bytes32 post_state_root;
-        bytes32 batch_hash;
-        bytes32 post_withdraw_root;
+        bytes32 prevStateRoot;
+        bytes32 prevBatchHash;
+        bytes32 postStateRoot;
+        bytes32 batchHash;
+        bytes32 postWithdrawRoot;
     }
 }
