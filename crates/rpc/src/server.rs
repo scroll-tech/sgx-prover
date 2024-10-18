@@ -48,9 +48,9 @@ impl ScrollSgxServer for ScrollSgxServerImpl {
         let signature = self.signer.sign(&sig_data).await.ok_or_internal_error()?;
 
         Ok(ProveBatchResponse {
-            batch_hash: sig_data.batch_hash,
-            post_state_root: sig_data.post_state_root,
-            post_withdraw_root: sig_data.post_withdraw_root,
+            batch_hash: sig_data.batchHash,
+            post_state_root: sig_data.postStateRoot,
+            post_withdraw_root: sig_data.postWithdrawRoot,
             signature,
         })
     }

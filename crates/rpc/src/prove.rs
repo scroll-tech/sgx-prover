@@ -5,6 +5,8 @@ use scroll_verifier::block_trace_to_pob;
 use scroll_verifier::{PobContext, ScrollBatchVerifier};
 
 pub async fn prove_batch(req: ProveBatchRequest) -> anyhow::Result<ProveBatchSignatureData> {
+    let chain_id = req.blocks[0].chain_id;
+
     let batch = BatchTask {
         chunks: req.chunks,
         // todo: handle error
@@ -22,9 +24,10 @@ pub async fn prove_batch(req: ProveBatchRequest) -> anyhow::Result<ProveBatchSig
     let poe = ScrollBatchVerifier::verify(&batch, chunks).await.unwrap();
 
     Ok(ProveBatchSignatureData {
-        prev_state_root: poe.prev_state_root,
-        post_state_root: poe.new_state_root,
-        batch_hash: poe.batch_hash,
-        post_withdraw_root: poe.withdrawal_root,
+        layer2ChainId: chain_id,
+        prevStateRoot: poe.prev_state_root,
+        postStateRoot: poe.new_state_root,
+        batchHash: poe.batch_hash,
+        postWithdrawRoot: poe.withdrawal_root,
     })
 }
