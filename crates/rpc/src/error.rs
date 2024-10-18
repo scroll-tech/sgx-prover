@@ -1,7 +1,7 @@
 use core::fmt::Display;
 
 use jsonrpsee::types::{
-    error::{INTERNAL_ERROR_CODE, INTERNAL_ERROR_MSG},
+    error::{INTERNAL_ERROR_CODE, INTERNAL_ERROR_MSG, INVALID_PARAMS_CODE, INVALID_PARAMS_MSG},
     ErrorObjectOwned,
 };
 
@@ -15,4 +15,8 @@ impl<T, E: Display> OkOrInternalError<T> for Result<T, E> {
             ErrorObjectOwned::owned(INTERNAL_ERROR_CODE, INTERNAL_ERROR_MSG, Some(e.to_string()))
         })
     }
+}
+
+pub fn invalid_params(e: impl ToString) -> ErrorObjectOwned {
+    ErrorObjectOwned::owned(INVALID_PARAMS_CODE, INVALID_PARAMS_MSG, Some(e.to_string()))
 }
