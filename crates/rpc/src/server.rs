@@ -12,7 +12,9 @@ use scroll_da_codec::DABatch;
 use crate::enclave_signer::EnclaveSigner;
 use crate::error::*;
 use crate::methods::ScrollSgxServer;
+use crate::prove::prove_batch;
 use crate::types::*;
+use crate::utils::*;
 
 pub struct ScrollSgxServerImpl {
     signer: EnclaveSigner,
@@ -34,9 +36,26 @@ impl ScrollSgxServer for ScrollSgxServerImpl {
 
     async fn prove_batch(
         &self,
-        _req: ProveBatchRequest,
+        req: ProveBatchRequest,
     ) -> Result<ProveBatchResponse, ErrorObjectOwned> {
-        todo!()
+        if req.blocks.len() == 0 {
+            return Err(invalid_params("empty block list"));
+        }
+
+        if ethers_hash_to_alloy(req.blocks[0].storage_trace.root_before) != req.prev_state_root {
+            return Err(invalid_params("prev_state_root mismatch"));
+        }
+
+        let sig_data = prove_batch(req).await.ok_or_internal_error()?;
+
+        let signature = self.signer.sign(&sig_data).await.ok_or_internal_error()?;
+
+        Ok(ProveBatchResponse {
+            batch_hash: sig_data.batchHash,
+            post_state_root: sig_data.postStateRoot,
+            post_withdraw_root: sig_data.postWithdrawRoot,
+            signature,
+        })
     }
 
     async fn prove_bundle(

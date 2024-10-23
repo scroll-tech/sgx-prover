@@ -6,9 +6,11 @@ edition.workspace = true
 [dependencies]
 alloy.workspace = true
 anyhow.workspace = true
+eth-types.workspace = true
 jsonrpsee.workspace = true
 log.workspace = true
 scroll-da-codec.workspace = true
 scroll-executor.workspace = true
+scroll-verifier.workspace = true
 serde.workspace = true
 tokio.workspace = true
