@@ -27,7 +27,7 @@ impl EnclaveSigner {
         self.signer.address()
     }
 
-    pub async fn sign(&self, data: impl SolStruct) -> anyhow::Result<Signature> {
+    pub async fn sign(&self, data: &impl SolStruct) -> anyhow::Result<Signature> {
         let hash = data.eip712_signing_hash(&self.domain);
         let signature = self.signer.sign_hash(&hash).await?;
         Ok(signature)
