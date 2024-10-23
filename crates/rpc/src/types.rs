@@ -34,18 +34,18 @@ sol! {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProveBundleRequest {
-    last_finalized_batch_header: Bytes,
-    prev_state_root: B256,
-    batch_headers: Vec<Bytes>,
-    state_roots: Vec<B256>,
-    withdraw_roots: Vec<B256>,
-    signatures: Vec<Signature>,
+    pub last_finalized_batch_header: Bytes,
+    pub prev_state_root: B256,
+    pub batch_headers: Vec<Bytes>,
+    pub state_roots: Vec<B256>,
+    pub withdraw_roots: Vec<B256>,
+    pub signatures: Vec<Signature>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProveBundleResponse {
-    public_input: Bytes,
-    signature: Signature,
+    pub public_input: Bytes,
+    pub signature: Signature,
 }
 
 sol! {
