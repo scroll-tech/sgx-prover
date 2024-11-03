@@ -10,7 +10,6 @@ mod types;
 mod utils;
 mod l1_client;
 mod event_log_fetcher;
-mod event_log_parser;
 mod task_manager;
 mod state_manager;
 mod prover;
