@@ -45,7 +45,6 @@ impl From<AttestationReport> for RegisterCall {
             _report: value.report,
             _data: ReportData {
                 addr: value.address,
-                teeType: value.tee_type,
                 referenceBlockHash: value.reference_block_hash,
                 referenceBlockNumber: value.reference_block_number,
             },

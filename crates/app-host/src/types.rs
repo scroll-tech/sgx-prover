@@ -13,13 +13,6 @@ sol!(
     "abi/ScrollChain.json"
 );
 
-sol!(
-    #[allow(missing_docs)]
-    #[sol(rpc)]
-    SGXVerifier,
-    "abi/SGXVerifier.json"
-);
-
 pub struct CommitBatchEvent {
     pub batch_index: u64,
     pub batch_hash: BatchHash,
