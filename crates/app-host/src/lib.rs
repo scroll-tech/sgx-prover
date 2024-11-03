@@ -34,9 +34,7 @@ pub async fn host_entrypoint() {
     });
 
     let task_manager = TaskManager::new();
-    let task_manager_handle = tokio::spawn(async move {
-        task_manager.start(commit_batch_rx, finalize_batch_rx);
-    });
+    TaskManager::start(task_manager, commit_batch_rx, finalize_batch_rx).await;
 
     tokio::join!(h);
 

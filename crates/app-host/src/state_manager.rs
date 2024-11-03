@@ -160,7 +160,7 @@ impl StateManager {
         todo!()
     }
 
-    pub async fn on_batch_commit_event_received(&self, event: CommitBatchEvent, block_tracer: Arc<BlockTracer>) -> Result<ProveBatchRequest> {
+    pub async fn on_batch_commit_event_received(&self, event: CommitBatchEvent, block_tracer: &BlockTracer) -> Result<ProveBatchRequest> {
         let blocks = event.chunks.clone().into_iter().flatten().collect::<Vec<_>>();
 
         if blocks.len() == 0 {

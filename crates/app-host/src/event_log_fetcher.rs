@@ -21,7 +21,9 @@ pub struct EventLogFetcher {
 }
 
 impl EventLogFetcher {
-    pub fn new() -> Self {
+    pub fn new(
+        commit_batch_tx: Sender<CommitBatchEvent>,
+        finalize_batch_tx: Sender<FinalizeBatchEvent>,) -> Self {
         todo!()
     }
 

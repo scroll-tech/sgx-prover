@@ -8,6 +8,10 @@ use crate::state_manager::StateManager;
 use rpc::ScrollSgxClient;
 
 pub struct TaskManager {
+    state_manager: StateManager,
+    l1_client: Arc<L1Client>,
+    enclave_client: HttpClient,
+    block_tracer: BlockTracer,
 }
 
 impl TaskManager {
@@ -15,9 +19,9 @@ impl TaskManager {
         todo!()
     }
 
-    async fn prove_batch(enclave_client: Arc<HttpClient>, request: ProveBatchRequest) -> ProveBatchResponse {
+    async fn prove_batch(&self, request: ProveBatchRequest) -> ProveBatchResponse {
         loop {
-            match enclave_client.prove_batch(request.clone()).await {
+            match self.enclave_client.prove_batch(request.clone()).await {
                 Ok(resp) => {
                     break resp;
                 },
@@ -29,9 +33,9 @@ impl TaskManager {
         }
     }
 
-    async fn prove_bundle_and_submit(enclave_client: Arc<HttpClient>, l1_client: Arc<L1Client>, request: ProveBundleRequest) -> () {
+    async fn prove_bundle_and_submit(&self, request: ProveBundleRequest) -> () {
         let response = loop {
-            match enclave_client.prove_bundle(request.clone()).await {
+            match self.enclave_client.prove_bundle(request.clone()).await {
                 Ok(resp) => {
                     break resp;
                 },
@@ -47,7 +51,7 @@ impl TaskManager {
             let post_state_root = request.state_roots[last_index];
             let withdraw_root = request.withdraw_roots[last_index];
             let tee_proof = response.signature.as_bytes().into();
-            match l1_client.finalize_bundle_with_tee_proof(
+            match self.l1_client.finalize_bundle_with_tee_proof(
                 batch_header,
                 post_state_root,
                 withdraw_root,
@@ -65,15 +69,13 @@ impl TaskManager {
     }
 
     async fn handle_batch_event(
-        proof_state: Arc<StateManager>,
-        enclave_client: Arc<HttpClient>,
-        block_tracer: Arc<BlockTracer>,
+        &self,
         mut rx: Receiver<CommitBatchEvent>,
         prove_batch_tx: Sender<ProveBatchResponse>
     ) -> () {
         while let Some(event) = rx.recv().await {
-            if let Ok(request) = proof_state.on_batch_commit_event_received(event, block_tracer.clone()).await {
-                let response = TaskManager::prove_batch(enclave_client.clone(), request).await;
+            if let Ok(request) = self.state_manager.on_batch_commit_event_received(event, &self.block_tracer).await {
+                let response = self.prove_batch(request).await;
                 prove_batch_tx.send(response).await;
             } else {
                 // todo, retry or handle error
@@ -82,9 +84,7 @@ impl TaskManager {
     }
 
     async fn handle_bundle_event(
-        proof_state: Arc<StateManager>,
-        enclave_client: Arc<HttpClient>,
-        l1_client: Arc<L1Client>,
+        &self,
         mut rx: Receiver<FinalizeBatchEvent>,
         mut prove_batch_rx: Receiver<ProveBatchResponse>) -> () {
         
@@ -93,7 +93,7 @@ impl TaskManager {
                 finalize_batch_option = rx.recv() => {
                     match finalize_batch_option {
                         Some(finalize_batch_event) => {
-                            if let Ok(reqs) = proof_state.on_batch_finalize_event_received(finalize_batch_event).await {
+                            if let Ok(reqs) = self.state_manager.on_batch_finalize_event_received(finalize_batch_event).await {
                                 reqs
                             } else {
                                 vec![]
@@ -105,7 +105,7 @@ impl TaskManager {
                 proved_batch_option = prove_batch_rx.recv() => {
                     match proved_batch_option {
                         Some(prove_batch_response) => {
-                            if let Ok(reqs) = proof_state.on_batch_proved(prove_batch_response).await {
+                            if let Ok(reqs) = self.state_manager.on_batch_proved(prove_batch_response).await {
                                 reqs
                             } else {
                                 vec![]
@@ -116,44 +116,61 @@ impl TaskManager {
                 }
             };
             for request in requests {
-                TaskManager::prove_bundle_and_submit(enclave_client.clone(),
-                    l1_client.clone(),
-                    request).await;
+                self.prove_bundle_and_submit(request).await;
             }
         }
     }
 
-    pub async fn start(&self,
+    pub async fn start(task_manager: Self,
         commit_batch_event_rx: Receiver<CommitBatchEvent>,
         finalize_batch_event_rx: Receiver<FinalizeBatchEvent>,
     ) {
-        let proof_state_manager = Arc::new(StateManager::new());
-        let l1_client = Arc::new(L1Client::new());
-        let enclave_client = Arc::new();
-        let enclave_client_copy = enclave_client.clone();
-        let block_tracer = Arc::new(BlockTracer::new());
+        let task_manager_1 = Arc::new(task_manager);
+        let task_manager_2 = task_manager_1.clone();
 
         let (prove_batch_resp_tx, prove_batch_resp_rx) = mpsc::channel::<ProveBatchResponse>(32);
-
-        let proof_state_manager_copy = proof_state_manager.clone();
         tokio::spawn(async move {
-            TaskManager::handle_batch_event(
-                proof_state_manager_copy, 
-                enclave_client_copy,
-                block_tracer,
-                commit_batch_event_rx,
-                prove_batch_resp_tx);
+            task_manager_1.handle_batch_event(commit_batch_event_rx, prove_batch_resp_tx);
         });
 
         tokio::spawn(async move {
-            TaskManager::handle_bundle_event(
-                proof_state_manager, 
-                enclave_client,
-                l1_client,
-                finalize_batch_event_rx,
-                prove_batch_resp_rx);
+            task_manager_2.handle_bundle_event(finalize_batch_event_rx, prove_batch_resp_rx);
         });
 
         ()
     }
+
+    // pub async fn start(&self,
+    //     commit_batch_event_rx: Receiver<CommitBatchEvent>,
+    //     finalize_batch_event_rx: Receiver<FinalizeBatchEvent>,
+    // ) {
+    //     let proof_state_manager = Arc::new(StateManager::new());
+    //     let l1_client = Arc::new(L1Client::new());
+    //     let enclave_client: Arc<HttpClient> = Arc::new(rpc::create_client("http://127.0.0.1:1234").unwrap());
+    //     let enclave_client_copy = enclave_client.clone();
+    //     let block_tracer = Arc::new(BlockTracer::new());
+
+    //     let (prove_batch_resp_tx, prove_batch_resp_rx) = mpsc::channel::<ProveBatchResponse>(32);
+
+    //     let proof_state_manager_copy = proof_state_manager.clone();
+    //     tokio::spawn(async move {
+    //         TaskManager::handle_batch_event(
+    //             proof_state_manager_copy, 
+    //             enclave_client_copy,
+    //             block_tracer,
+    //             commit_batch_event_rx,
+    //             prove_batch_resp_tx);
+    //     });
+
+    //     tokio::spawn(async move {
+    //         TaskManager::handle_bundle_event(
+    //             proof_state_manager, 
+    //             enclave_client,
+    //             l1_client,
+    //             finalize_batch_event_rx,
+    //             prove_batch_resp_rx);
+    //     });
+
+    //     ()
+    // }
 }
