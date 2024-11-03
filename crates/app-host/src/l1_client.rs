@@ -1,12 +1,12 @@
 use alloy::{
-    primitives::{Address, Bytes, FixedBytes, TxHash, B256},
+    primitives::{Address, Bytes, FixedBytes, TxHash},
     rpc::types::{Block, BlockNumberOrTag, Filter, Log, Transaction, TransactionReceipt},
     sol_types::SolEvent,
 };
 
 use base::eth::{Eth, EthError};
 
-use crate::types::ScrollChain;
+use crate::types::{ScrollChain, StateRoot, WithdrawRoot};
 use std::sync::Arc;
 
 pub struct L1Client {
@@ -86,8 +86,8 @@ impl L1Client {
     pub async fn finalize_bundle_with_tee_proof(
         &self,
         batch_header: Bytes,
-        post_state_root: B256,
-        withdraw_root: B256,
+        post_state_root: StateRoot,
+        withdraw_root: WithdrawRoot,
         tee_proof: Bytes,
     ) -> Result<u64, FinalizeError> {
         let call = ScrollChain::finalizeBundleWithTeeProofCall {

@@ -3,11 +3,10 @@ use std::{collections::{HashMap, VecDeque}, sync::{Arc, Mutex}};
 
 use rpc::{ProveBatchRequest, ProveBatchResponse, ProveBundleRequest};
 
-use crate::{block_tracer::BlockTracer, l1_client::L1Client, types::{CommitBatchEvent, FinalizeBatchEvent}, utils::convert_eth_error};
+use crate::{block_tracer::BlockTracer, l1_client::L1Client, types::{BatchHash, CommitBatchEvent, FinalizeBatchEvent, StateRoot}, utils::convert_eth_error};
 use anyhow::{bail, Ok, Result};
-use alloy::primitives::{B256, Bytes};
+use alloy::primitives::Bytes;
 
-type BatchHash = B256;
 
 struct BatchInfo {
     batch_index: u64,
@@ -39,7 +38,7 @@ impl BatchState {
 
     // this method requires that the batch should be proved sequentially by enclave part
     // or it fails to get the prev_state_root
-    fn get_batch_prev_state_root(&self, batch_index: u64) -> Option<B256> {
+    fn get_batch_prev_state_root(&self, batch_index: u64) -> Option<StateRoot> {
         let prev_batch_index = batch_index - 1;
         self.index_hash_map.get(&prev_batch_index).and_then(|batch_hash| {
             self.hash_info_map[batch_hash].prove_response.and_then(|response| {
@@ -98,7 +97,7 @@ struct BundleInfo {
     begin_batch_index: u64,
     end_batch_index: u64,
     end_batch_header: Bytes,
-    end_state_root: B256,
+    end_state_root: StateRoot,
 }
 
 impl BundleState {
