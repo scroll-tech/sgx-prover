@@ -1,4 +1,4 @@
-use crate::{l1_client::L1Client, types::{CommitBatchEvent, FinalizeBatchEvent, IScrollChain}, utils::convert_eth_error};
+use crate::{l1_client::L1Client, types::{CommitBatchEvent, FinalizeBatchEvent, ScrollChain}, utils::convert_eth_error};
 
 use alloy::{primitives::hex, rpc::types::Log, sol, sol_types::SolCall};
 use anyhow::{bail, Result};
@@ -53,7 +53,7 @@ fn decode_block_numbers(mut data: &[u8]) -> Option<Vec<u64>> {
 
 impl EventLogParser {
     pub async fn parse_commit_batch_log(&self, log: Log) -> Result<CommitBatchEvent> {
-        let log_decoded: Log<IScrollChain::CommitBatch> = log.log_decode()?;
+        let log_decoded: Log<ScrollChain::CommitBatch> = log.log_decode()?;
 
         if log.transaction_hash.is_none() {
             bail!("empty transaction hash");
@@ -86,7 +86,7 @@ impl EventLogParser {
     }
 
     pub async fn parse_finalize_batch_log(&self, log: Log) -> Result<FinalizeBatchEvent> {
-        let log_decoded: Log<IScrollChain::FinalizeBatch> = log.log_decode()?;
+        let log_decoded: Log<ScrollChain::FinalizeBatch> = log.log_decode()?;
 
         if log.transaction_hash.is_none() {
             bail!("empty transaction hash");

@@ -4,8 +4,16 @@ use alloy::{primitives::{Bytes, B256}, sol};
 sol!(
     #[allow(missing_docs)]
     #[sol(rpc)]
-    IScrollChain,
-    "abi/IScrollChain.json"
+    #[derive(Debug, Default)]
+    ScrollChain,
+    "abi/ScrollChain.json"
+);
+
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    SGXVerifier,
+    "abi/SGXVerifier.json"
 );
 
 pub struct CommitBatchEvent {

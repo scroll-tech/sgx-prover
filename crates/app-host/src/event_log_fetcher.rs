@@ -1,6 +1,6 @@
 use alloy::{eips::BlockNumberOrTag, primitives::Address, rpc::types::Log, sol_types::SolEvent};
 
-use crate::{event_log_parser::EventLogParser, l1_client::L1Client, types::{CommitBatchEvent, FinalizeBatchEvent, IScrollChain}, utils::{self, convert_eth_error}};
+use crate::{event_log_parser::EventLogParser, l1_client::L1Client, types::{CommitBatchEvent, FinalizeBatchEvent, ScrollChain}, utils::{self, convert_eth_error}};
 
 use std::time::Duration;
 use tokio::{sync::mpsc::Sender, time::interval};
@@ -39,8 +39,8 @@ impl EventLogFetcher {
     async fn fetch_logs(&self) -> Result<()> {
         let last_finalize_block = self.get_latest_finalized_block().await?;
         let event_signatures = vec![
-            IScrollChain::CommitBatch::SIGNATURE_HASH,
-            IScrollChain::FinalizeBatch::SIGNATURE_HASH,
+            ScrollChain::CommitBatch::SIGNATURE_HASH,
+            ScrollChain::FinalizeBatch::SIGNATURE_HASH,
         ];
 
         let from: u64 = self.fetched_block_number;
@@ -53,7 +53,7 @@ impl EventLogFetcher {
 
         for log in logs {
             match log.topic0() {
-                Some(&IScrollChain::CommitBatch::SIGNATURE_HASH) => {
+                Some(&ScrollChain::CommitBatch::SIGNATURE_HASH) => {
                     match self.event_log_parser.parse_commit_batch_log(log).await {
                         Ok(event) => {
                             self.commit_batch_tx.send(event).await;
@@ -63,7 +63,7 @@ impl EventLogFetcher {
                         }
                     }
                 },
-                Some(&IScrollChain::FinalizeBatch::SIGNATURE_HASH) => {
+                Some(&ScrollChain::FinalizeBatch::SIGNATURE_HASH) => {
                     match self.event_log_parser.parse_finalize_batch_log(log).await {
                         Ok(event) => {
                             self.finalize_batch_tx.send(event).await;

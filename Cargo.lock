@@ -625,7 +625,9 @@ dependencies = [
  "scroll-executor",
  "serde",
  "serde_json",
+ "tee",
  "tokio",
+ "url",
 ]
 
 [[package]]
