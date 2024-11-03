@@ -1,11 +1,8 @@
 use jsonrpsee::http_client::HttpClient;
-use rpc::ScrollSgxClient;
-use rpc::{ProveBatchRequest, ProveBatchResponse, ProveBundleRequest, ProveBundleResponse};
 use tee::ProverRegistry;
 
 use crate::l1_client::L1Client;
 use std::sync::Arc;
-use anyhow::Result;
 
 pub struct Prover {
     enclave_client: HttpClient,

@@ -41,7 +41,7 @@ impl BatchState {
     fn get_batch_prev_state_root(&self, batch_index: u64) -> Option<StateRoot> {
         let prev_batch_index = batch_index - 1;
         self.index_hash_map.get(&prev_batch_index).and_then(|batch_hash| {
-            self.hash_info_map[batch_hash].prove_response.and_then(|response| {
+            self.hash_info_map[batch_hash].prove_response.as_ref().and_then(|response| {
                 Some(response.post_state_root)
             })
         })
@@ -58,13 +58,13 @@ impl BatchState {
                 bail!("")
             }
             if let Some(batch_info) = self.hash_info_map.get(batch_hash.unwrap()) {
-                match batch_info.batch_header {
+                match batch_info.batch_header.as_ref() {
                     Some(header) => {
                         batch_headers.push(header.clone());
                     },
                     _ => bail!("")
                 }
-                match batch_info.prove_response {
+                match batch_info.prove_response.as_ref() {
                     Some(response) => {
                         state_roots.push(response.post_state_root.clone());
                         withdraw_roots.push(response.post_withdraw_root.clone());
@@ -93,6 +93,7 @@ struct BundleState {
     last_finalized_batch_index: Option<u64>,
 }
 
+#[derive(Clone)]
 struct BundleInfo {
     begin_batch_index: u64,
     end_batch_index: u64,
@@ -119,21 +120,21 @@ impl BundleState {
         Ok(())
     }
 
-    fn get_pending_bundles(&self) -> Option<Vec<BundleInfo>> {
-        self.last_finalized_batch_index.map(|last_index| {
+    fn get_pending_bundles(&mut self) -> Option<Vec<BundleInfo>> {
+        self.last_finalized_batch_index.as_ref().map(|last_index| {
             let mut infos = vec![];
 
             let mut next_begin_index: u64 = 0;
             self.bundle_info_queue.retain(|info| {
-                if info.end_batch_index < last_index {
+                if info.end_batch_index < *last_index {
                     false
-                } else if info.end_batch_index == last_index {
+                } else if info.end_batch_index == *last_index {
                     // notice, this block must be entered or the begin_batch_index may starts at 0
                     // this is guarded by error check in `append_event`
                     next_begin_index = info.end_batch_index + 1;
                     true
                 } else {
-                    let mut cloend_info = *info.clone();
+                    let mut cloend_info = (*info).clone();
                     cloend_info.begin_batch_index = next_begin_index;
                     infos.push(cloend_info);
 
@@ -215,7 +216,7 @@ impl StateManager {
         let mut requests = vec![];
         
         let bundles = {
-            let bundle_state = self.bundle_state.lock().unwrap();
+            let mut bundle_state = self.bundle_state.lock().unwrap();
             bundle_state.get_pending_bundles()
         };
         // actually this could not be none, the check should perform beforehand.
