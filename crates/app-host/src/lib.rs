@@ -7,7 +7,6 @@ use types::{CommitBatchEvent, FinalizeBatchEvent};
 
 mod config;
 mod types;
-mod utils;
 mod l1_client;
 mod event_log_fetcher;
 mod task_manager;

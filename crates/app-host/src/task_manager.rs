@@ -96,6 +96,7 @@ impl TaskManager {
                             if let Ok(reqs) = self.state_manager.on_batch_finalize_event_received(finalize_batch_event).await {
                                 reqs
                             } else {
+                                // todo: add error
                                 vec![]
                             }
                         },
@@ -140,7 +141,7 @@ impl TaskManager {
         ()
     }
 
-    // pub async fn start(&self,
+     // pub async fn start(&self,
     //     commit_batch_event_rx: Receiver<CommitBatchEvent>,
     //     finalize_batch_event_rx: Receiver<FinalizeBatchEvent>,
     // ) {

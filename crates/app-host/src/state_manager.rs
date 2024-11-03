@@ -1,12 +1,31 @@
 
 use std::{collections::{HashMap, VecDeque}, sync::{Arc, Mutex}};
 
+use base::eth::EthError;
 use rpc::{ProveBatchRequest, ProveBatchResponse, ProveBundleRequest};
 
-use crate::{block_tracer::BlockTracer, l1_client::L1Client, types::{BatchHash, CommitBatchEvent, FinalizeBatchEvent, StateRoot}, utils::convert_eth_error};
+use crate::{block_tracer::BlockTracer, l1_client::L1Client, types::{BatchHash, CommitBatchEvent, FinalizeBatchEvent, StateRoot}};
 use anyhow::{bail, Ok, Result};
 use alloy::primitives::Bytes;
 
+base::stack_error! {
+    #[derive(Debug)]
+    name: StateManagerError,
+    stack_name: StateManagerErrorStack,
+    error: {
+        Eth(EthError),
+        Custom(std::borrow::Cow<'static, str>),
+    },
+    wrap: {
+    },
+    stack: {}
+}
+
+impl From<EthError> for StateManagerError {
+    fn from(value: EthError) -> Self {
+        Self::Eth(value)
+    }
+}
 
 struct BatchInfo {
     batch_index: u64,
@@ -203,7 +222,7 @@ impl StateManager {
         Ok(request)
     }
 
-    pub async fn on_batch_proved(&self, response: ProveBatchResponse) -> Result<Vec<ProveBundleRequest>> {
+    pub async fn on_batch_proved(&self, response: ProveBatchResponse) -> Result<Vec<ProveBundleRequest>, StateManagerError> {
         {
             let mut state = self.batch_state.lock().unwrap();
             state.update_batch_proof(response);
@@ -212,7 +231,7 @@ impl StateManager {
         self.try_build_prove_bundle_request()
     }
 
-    fn try_build_prove_bundle_request(&self) -> Result<Vec<ProveBundleRequest>> {
+    fn try_build_prove_bundle_request(&self) -> Result<Vec<ProveBundleRequest>, StateManagerError> {
         let mut requests = vec![];
         
         let bundles = {
@@ -222,7 +241,7 @@ impl StateManager {
         // actually this could not be none, the check should perform beforehand.
         if bundles.is_none() {
             // todo: add error log.
-            return Ok(requests);
+            return Result::Ok(requests);
         }
 
         for bundle in bundles.unwrap() {
@@ -244,15 +263,18 @@ impl StateManager {
             requests.push(request);
         }
 
-        Ok(requests)
+        Result::Ok(requests)
     }
 
-    pub async fn on_batch_finalize_event_received(&self, event: FinalizeBatchEvent) -> Result<Vec<ProveBundleRequest>> {
+    pub async fn on_batch_finalize_event_received(&self, event: FinalizeBatchEvent) -> Result<Vec<ProveBundleRequest>, StateManagerError> {
         // track latest_finalized_batch_index
-        let last_finalized_batch_index = self.l1_client.get_last_tee_finalized_batch_index().await.map_err(|e| convert_eth_error(e))?;
+        let last_finalized_batch_index = self
+        .l1_client
+        .get_last_tee_finalized_batch_index()
+        .await.map_err(EthError::from)?;
 
         if event.batch_index < last_finalized_batch_index {
-            bail!("")
+            return Err(StateManagerError::Custom("test".into()));
         }
         let event_batch_index = event.batch_index;
         let end_batch_header = event.end_batch_header.clone();
@@ -266,7 +288,7 @@ impl StateManager {
         }
 
         if event_batch_index == last_finalized_batch_index {
-            Ok(vec![])
+            Result::Ok(vec![])
         } else {
             self.try_build_prove_bundle_request()
         }

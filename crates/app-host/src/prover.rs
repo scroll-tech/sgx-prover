@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 pub struct Prover {
     enclave_client: HttpClient,
+    prover_registry: ProverRegistry,
     l1_client: Arc<L1Client>,
 }
 
@@ -14,25 +15,7 @@ impl Prover {
         todo!()
     }
 
-    // async fn submit_attestation_report() {
-
-    // }
-
-    // pub async fn prove_bundle(&self, request: ProveBundleRequest) -> Result<ProveBundleResponse> {
-    //     let response = self.enclave_client.prove_bundle(request).await?;
-    //     Ok(response)
-    // }
-
-    // pub async fn prove_batch(&self, request: ProveBatchRequest) -> Result<ProveBatchResponse> {
-    //     let response = self.enclave_client.prove_batch(request).await?;
-    //     Ok(response)
-    // }
-
-    // pub async fn submit_bundle_proof(&self) {
-    //     self.l1_client.finalize_bundle_with_tee_proof();
-    // }
-
-    pub async fn start(prover_registry: ProverRegistry) -> () {
+    pub async fn start(&self) -> () {
 
     }
 }
