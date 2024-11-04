@@ -12,8 +12,19 @@ pub struct BlockTracer {
 }
 
 impl BlockTracer {
-    pub fn new() -> Self {
-        todo!()
+    pub fn new(
+        l2_endpoint: String,
+        max_workers: usize,
+    ) -> Result<Self> {
+        let l2_client = L2Client::dial(&l2_endpoint)?;
+        let rt = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(max_workers)
+        .build()
+        .unwrap();
+        Ok(Self{
+            l2_client: Arc::new(l2_client),
+            rt,
+        })
     }
 
     pub async fn get_block_traces(&self, blocks: Vec<u64>) -> Result<Vec<BlockTrace>> {

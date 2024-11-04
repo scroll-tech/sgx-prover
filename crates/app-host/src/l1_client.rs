@@ -7,14 +7,6 @@ use alloy::{
 use base::eth::{Eth, EthError};
 
 use crate::types::{ScrollChain, StateRoot, WithdrawRoot};
-use std::sync::Arc;
-
-pub struct L1Client {
-    eth: Arc<Eth>,
-    // private_key: ,
-    scroll_chain_address: Address,
-    prover_registry_address: Address,
-}
 
 base::stack_error! {
     #[derive(Debug)]
@@ -39,11 +31,13 @@ impl From<EthError> for FinalizeError {
     }
 }
 
-impl L1Client {
-    pub fn new() -> Self {
-        todo!()
-    }
+pub struct L1Client {
+    pub eth: Eth,
+    pub scroll_chain_address: Address,
+    pub prover_registry_address: Address,
+}
 
+impl L1Client {
     pub async fn get_block_by_number(&self, block_number: BlockNumberOrTag) -> Result<Option<Block>, EthError> {
         let block = self
         .eth

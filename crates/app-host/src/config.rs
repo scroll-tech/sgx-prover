@@ -1,11 +1,16 @@
 use anyhow::Result;
 use serde::Deserialize;
 use std::fs::File;
-
+use alloy::primitives::Address;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
     pub l1_endpoint: String,
+    pub l1_account_pk: String,
+    pub scroll_chain_address: Address,
+    pub prover_registry_address: Address,
+    pub max_size_per_fetch_l1_event: u64,
+    pub max_block_trace_workers: usize,
     pub l2_endpoint: String,
     pub enclave_endpoint: String,
 }

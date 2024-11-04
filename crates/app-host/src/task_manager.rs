@@ -2,10 +2,11 @@ use jsonrpsee::http_client::HttpClient;
 use rpc::{ProveBatchRequest, ProveBatchResponse, ProveBundleRequest};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 
-use crate::{block_tracer::BlockTracer, l1_client::L1Client, types::{CommitBatchEvent, FinalizeBatchEvent}};
+use crate::{block_tracer::{self, BlockTracer}, l1_client::L1Client, types::{CommitBatchEvent, FinalizeBatchEvent}};
 use std::sync::Arc;
 use crate::state_manager::StateManager;
 use rpc::ScrollSgxClient;
+use anyhow::Result;
 
 pub struct TaskManager {
     state_manager: StateManager,
@@ -15,8 +16,21 @@ pub struct TaskManager {
 }
 
 impl TaskManager {
-    pub fn new() -> Self {
-        todo!()
+    pub async fn new(
+        l1_client: Arc<L1Client>,
+        enclave_endpoint: String,
+        l2_endpoint: String,
+        max_block_trace_workers: usize,
+    ) -> Result<Self> {
+        let enclave_client = rpc::create_client(enclave_endpoint)?;
+        log::info!("created enclave client, address = {:?}", enclave_client.get_address().await.unwrap());
+        let block_tracer = BlockTracer::new(l2_endpoint, max_block_trace_workers)?;
+        Ok(Self{
+            state_manager: StateManager::new(l1_client.clone()),
+            l1_client,
+            enclave_client,
+            block_tracer,
+        })
     }
 
     async fn prove_batch(&self, request: ProveBatchRequest) -> ProveBatchResponse {

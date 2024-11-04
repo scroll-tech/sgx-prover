@@ -1,9 +1,10 @@
 use alloy::{eips::BlockNumberOrTag, primitives::Address, sol_types::SolEvent};
 use base::eth::EthError;
-use crate::{l1_client::L1Client, types::{CommitBatchEvent, FinalizeBatchEvent, ScrollChain}};
+use crate::{l1_client::{self, L1Client}, types::{CommitBatchEvent, FinalizeBatchEvent, ScrollChain}};
 use std::time::Duration;
 use tokio::{sync::mpsc::Sender, time::interval};
 use anyhow::Result;
+use std::sync::Arc;
 use event_log_parser::EventLogParser;
 
 base::stack_error! {
@@ -29,7 +30,7 @@ impl From<EthError> for EventLogError {
 
 pub struct EventLogFetcher {
     event_log_parser: EventLogParser,
-    l1_client: L1Client,
+    l1_client: Arc<L1Client>,
     scroll_chain_address: Address,
     max_size_per_fetch: u64,
     fetched_block_number: u64,
@@ -41,9 +42,21 @@ pub struct EventLogFetcher {
 
 impl EventLogFetcher {
     pub fn new(
+        l1_client: Arc<L1Client>,
+        scroll_chain_address: Address,
+        max_size_per_fetch: u64,
         commit_batch_tx: Sender<CommitBatchEvent>,
         finalize_batch_tx: Sender<FinalizeBatchEvent>,) -> Self {
-        todo!()
+        Self {
+            event_log_parser: EventLogParser::new(l1_client.clone()),
+            l1_client,
+            scroll_chain_address,
+            max_size_per_fetch,
+            fetched_block_number: 0,
+            finalized_block_number: 0,
+            commit_batch_tx,
+            finalize_batch_tx,
+        }
     }
 
     async fn get_latest_finalized_block(&self) -> Result<u64, EventLogError> {
@@ -66,8 +79,8 @@ impl EventLogFetcher {
 
         let from: u64 = self.fetched_block_number;
         let mut to = from + self.max_size_per_fetch;
-        if to > last_finalize_block {
-            to = last_finalize_block;
+        if to > last_finalized_block {
+            to = last_finalized_block;
         }
 
         let logs = self.l1_client.get_logs(self.scroll_chain_address, event_signatures, from, to).await.map_err(EthError::from)?;
@@ -145,6 +158,10 @@ mod event_log_parser {
     }
     
     impl EventLogParser {
+        pub fn new(l1_client: Arc<L1Client>) -> Self {
+            Self {l1_client}
+        }
+
         pub async fn parse_commit_batch_log(&self, log: Log) -> Result<CommitBatchEvent, EventLogError> {
             let log_decoded: Log<ScrollChain::CommitBatch> = log.log_decode().map_err(EthError::from)?;
     

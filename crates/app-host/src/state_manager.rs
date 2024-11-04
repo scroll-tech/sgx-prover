@@ -4,7 +4,7 @@ use std::{collections::{HashMap, VecDeque}, sync::{Arc, Mutex}};
 use base::eth::EthError;
 use rpc::{ProveBatchRequest, ProveBatchResponse, ProveBundleRequest};
 
-use crate::{block_tracer::BlockTracer, l1_client::L1Client, types::{BatchHash, CommitBatchEvent, FinalizeBatchEvent, StateRoot}};
+use crate::{block_tracer::BlockTracer, l1_client::{self, L1Client}, types::{BatchHash, CommitBatchEvent, FinalizeBatchEvent, StateRoot}};
 use anyhow::{bail, Ok, Result};
 use alloy::primitives::Bytes;
 
@@ -40,6 +40,13 @@ struct BatchState {
 }
 
 impl BatchState {
+    fn new() -> Self {
+        Self {
+            hash_info_map: HashMap::new(),
+            index_hash_map: HashMap::new(),
+        }
+    }
+
     fn create_batch(&mut self, event: &CommitBatchEvent, batch_info: BatchInfo) {
         self.index_hash_map.insert(event.batch_index, event.batch_hash);
         self.hash_info_map.insert(event.batch_hash, batch_info);
@@ -121,6 +128,13 @@ struct BundleInfo {
 }
 
 impl BundleState {
+    fn new() -> Self {
+        Self {
+            bundle_info_queue: VecDeque::new(),
+            last_finalized_batch_index: None,
+        }
+    }
+
     // the event should be appended in sequencial order
     fn append_event(&mut self, event: FinalizeBatchEvent, last_finalized_batch_index: u64) -> Result<()> {
         if !self.bundle_info_queue.is_empty() {
@@ -176,8 +190,13 @@ pub struct StateManager {
 }
 
 impl StateManager {
-    pub fn new() -> Self {
-        todo!()
+    pub fn new(l1_client: Arc<L1Client>) -> Self {
+        Self {
+            l1_client,
+            genesis_block_number: 0,
+            batch_state: Mutex::new(BatchState::new()),
+            bundle_state: Mutex::new(BundleState::new()),
+        }
     }
 
     pub async fn on_batch_commit_event_received(&self, event: CommitBatchEvent, block_tracer: &BlockTracer) -> Result<ProveBatchRequest> {
