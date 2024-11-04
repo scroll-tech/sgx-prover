@@ -36,6 +36,7 @@ pub struct EventLogFetcher {
     l1_client: Arc<L1Client>,
     scroll_chain_address: Address,
     max_size_per_fetch: u64,
+    fetch_interval_seconds: u64,
     fetched_block_number: u64,
     finalized_block_number: u64,
 
@@ -48,6 +49,7 @@ impl EventLogFetcher {
         l1_client: Arc<L1Client>,
         scroll_chain_address: Address,
         max_size_per_fetch: u64,
+        fetch_interval_seconds: u64,
         commit_batch_tx: Sender<CommitBatchEvent>,
         finalize_batch_tx: Sender<FinalizeBatchEvent>,
     ) -> Self {
@@ -56,6 +58,7 @@ impl EventLogFetcher {
             l1_client,
             scroll_chain_address,
             max_size_per_fetch,
+            fetch_interval_seconds,
             fetched_block_number: 0,
             finalized_block_number: 0,
             commit_batch_tx,
@@ -129,11 +132,11 @@ impl EventLogFetcher {
     }
 
     pub async fn start(&self) -> () {
-        let mut interval = interval(Duration::from_secs(10));
+        let mut interval = interval(Duration::from_secs(self.fetch_interval_seconds));
         loop {
-            interval.tick().await;
-
             self.fetch_logs();
+
+            interval.tick().await;
         }
     }
 }

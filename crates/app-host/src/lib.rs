@@ -52,7 +52,8 @@ pub async fn start() -> Result<()> {
     let event_fetcher = EventLogFetcher::new(
         l1_client.clone(),
         config.scroll_chain_address,
-        config.max_size_per_fetch_l1_event,
+        config.l1_event_max_size_per_fetch,
+        config.l1_event_fetch_interval_seconds,
         commit_batch_tx,
         finalize_batch_tx,
     );
