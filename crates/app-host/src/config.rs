@@ -5,8 +5,8 @@ use std::fs::File;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
-    pub l1_geth_endpoint: String,
-    pub l2_geth_endpoint: String,
+    pub l1_endpoint: String,
+    pub l2_endpoint: String,
     pub enclave_endpoint: String,
 }
 
