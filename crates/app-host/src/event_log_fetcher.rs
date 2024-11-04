@@ -58,7 +58,7 @@ impl EventLogFetcher {
     }
 
     async fn fetch_logs(&self) -> Result<(), EventLogError> {
-        let last_finalize_block = self.get_latest_finalized_block().await?;
+        let last_finalized_block = self.get_latest_finalized_block().await?;
         let event_signatures = vec![
             ScrollChain::CommitBatch::SIGNATURE_HASH,
             ScrollChain::FinalizeBatch::SIGNATURE_HASH,
