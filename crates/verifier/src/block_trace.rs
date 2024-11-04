@@ -1,6 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use base::{eth::PrimitivesConvert, prover::{Pob, PobBlock, PobData}};
+use base::{
+    eth::PrimitivesConvert,
+    prover::{Pob, PobBlock, PobData},
+};
 use scroll_executor::{
     eth_types::l2_types::StorageTrace, BlockTrace, Bytes, EthPrimitivesConvert, B256,
 };

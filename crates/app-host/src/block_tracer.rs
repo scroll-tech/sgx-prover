@@ -1,10 +1,9 @@
-
 use anyhow::Result;
 
-use scroll_executor::BlockTrace;
-use tokio::runtime::Runtime;
-use std::sync::Arc;
 use l2_client::L2Client;
+use scroll_executor::BlockTrace;
+use std::sync::Arc;
+use tokio::runtime::Runtime;
 
 pub struct BlockTracer {
     l2_client: Arc<l2_client::L2Client>,
@@ -12,16 +11,13 @@ pub struct BlockTracer {
 }
 
 impl BlockTracer {
-    pub fn new(
-        l2_endpoint: String,
-        max_workers: usize,
-    ) -> Result<Self> {
+    pub fn new(l2_endpoint: String, max_workers: usize) -> Result<Self> {
         let l2_client = L2Client::dial(&l2_endpoint)?;
         let rt = tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(max_workers)
-        .build()
-        .unwrap();
-        Ok(Self{
+            .worker_threads(max_workers)
+            .build()
+            .unwrap();
+        Ok(Self {
             l2_client: Arc::new(l2_client),
             rt,
         })
@@ -33,9 +29,9 @@ impl BlockTracer {
         for block in blocks {
             let l2_client = self.l2_client.clone();
             // todo: use a singleton tokio runtime with limited worker to spawn task
-            let handle = self.rt.spawn(async move {
-                BlockTracer::get_block_trace(l2_client, block).await
-            });
+            let handle = self
+                .rt
+                .spawn(async move { BlockTracer::get_block_trace(l2_client, block).await });
             handles.push(handle);
         }
 
@@ -52,7 +48,7 @@ impl BlockTracer {
             match l2_client.trace_block(block).await {
                 Result::Ok(trace) => break trace,
                 Err(err) => {
-                    // todo, add log, 
+                    // todo, add log,
                 }
             }
         }
@@ -60,13 +56,13 @@ impl BlockTracer {
 }
 
 mod l2_client {
+    use super::BlockTrace;
     use alloy::primitives::U64;
     use base::eth::{Eth, EthError, PrimitivesConvert};
-    use super::BlockTrace;
 
     #[derive(Clone)]
     pub struct L2Client {
-        eth: Eth, 
+        eth: Eth,
     }
 
     impl L2Client {
@@ -86,4 +82,3 @@ mod l2_client {
         }
     }
 }
-

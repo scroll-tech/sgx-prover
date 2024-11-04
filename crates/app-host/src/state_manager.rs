@@ -1,12 +1,18 @@
-
-use std::{collections::{HashMap, VecDeque}, sync::{Arc, Mutex}};
+use std::{
+    collections::{HashMap, VecDeque},
+    sync::{Arc, Mutex},
+};
 
 use base::eth::EthError;
 use rpc::{ProveBatchRequest, ProveBatchResponse, ProveBundleRequest};
 
-use crate::{block_tracer::BlockTracer, l1_client::{self, L1Client}, types::{BatchHash, CommitBatchEvent, FinalizeBatchEvent, StateRoot}};
-use anyhow::{bail, Ok, Result};
+use crate::{
+    block_tracer::BlockTracer,
+    l1_client::{self, L1Client},
+    types::{BatchHash, CommitBatchEvent, FinalizeBatchEvent, StateRoot},
+};
 use alloy::primitives::Bytes;
+use anyhow::{bail, Ok, Result};
 
 base::stack_error! {
     #[derive(Debug)]
@@ -48,32 +54,44 @@ impl BatchState {
     }
 
     fn create_batch(&mut self, event: &CommitBatchEvent, batch_info: BatchInfo) {
-        self.index_hash_map.insert(event.batch_index, event.batch_hash);
+        self.index_hash_map
+            .insert(event.batch_index, event.batch_hash);
         self.hash_info_map.insert(event.batch_hash, batch_info);
     }
 
     fn update_batch_header(&mut self, batch_index: u64, batch_header: Bytes) {
-        if let Some (batch_hash) = self.index_hash_map.get(&batch_index) {
-            self.hash_info_map.entry(*batch_hash).and_modify(|info| info.batch_header = Some(batch_header));
+        if let Some(batch_hash) = self.index_hash_map.get(&batch_index) {
+            self.hash_info_map
+                .entry(*batch_hash)
+                .and_modify(|info| info.batch_header = Some(batch_header));
         };
     }
 
     fn update_batch_proof(&mut self, prove_response: ProveBatchResponse) {
-        self.hash_info_map.entry(prove_response.batch_hash).and_modify(|info| info.prove_response = Some(prove_response));
+        self.hash_info_map
+            .entry(prove_response.batch_hash)
+            .and_modify(|info| info.prove_response = Some(prove_response));
     }
 
     // this method requires that the batch should be proved sequentially by enclave part
     // or it fails to get the prev_state_root
     fn get_batch_prev_state_root(&self, batch_index: u64) -> Option<StateRoot> {
         let prev_batch_index = batch_index - 1;
-        self.index_hash_map.get(&prev_batch_index).and_then(|batch_hash| {
-            self.hash_info_map[batch_hash].prove_response.as_ref().and_then(|response| {
-                Some(response.post_state_root)
+        self.index_hash_map
+            .get(&prev_batch_index)
+            .and_then(|batch_hash| {
+                self.hash_info_map[batch_hash]
+                    .prove_response
+                    .as_ref()
+                    .and_then(|response| Some(response.post_state_root))
             })
-        })
     }
 
-    fn collect_batch_infos(&self, begin_batch_index: u64, end_batch_index: u64) -> Result<ProveBundleRequest> {
+    fn collect_batch_infos(
+        &self,
+        begin_batch_index: u64,
+        end_batch_index: u64,
+    ) -> Result<ProveBundleRequest> {
         let mut batch_headers = vec![];
         let mut state_roots = vec![];
         let mut withdraw_roots = vec![];
@@ -87,16 +105,16 @@ impl BatchState {
                 match batch_info.batch_header.as_ref() {
                     Some(header) => {
                         batch_headers.push(header.clone());
-                    },
-                    _ => bail!("")
+                    }
+                    _ => bail!(""),
                 }
                 match batch_info.prove_response.as_ref() {
                     Some(response) => {
                         state_roots.push(response.post_state_root.clone());
                         withdraw_roots.push(response.post_withdraw_root.clone());
                         signatures.push(response.signature.clone());
-                    },
-                    _ => bail!("")
+                    }
+                    _ => bail!(""),
                 }
             } else {
                 unreachable!()
@@ -136,11 +154,19 @@ impl BundleState {
     }
 
     // the event should be appended in sequencial order
-    fn append_event(&mut self, event: FinalizeBatchEvent, last_finalized_batch_index: u64) -> Result<()> {
+    fn append_event(
+        &mut self,
+        event: FinalizeBatchEvent,
+        last_finalized_batch_index: u64,
+    ) -> Result<()> {
         if !self.bundle_info_queue.is_empty() {
-            assert!(self.bundle_info_queue.front().unwrap().end_batch_index == last_finalized_batch_index,
-            "last_finalized_batch_index {} should equals to first end_batch_index {}", last_finalized_batch_index,
-            self.bundle_info_queue.front().unwrap().end_batch_index)
+            assert!(
+                self.bundle_info_queue.front().unwrap().end_batch_index
+                    == last_finalized_batch_index,
+                "last_finalized_batch_index {} should equals to first end_batch_index {}",
+                last_finalized_batch_index,
+                self.bundle_info_queue.front().unwrap().end_batch_index
+            )
         }
 
         self.bundle_info_queue.push_back(BundleInfo {
@@ -199,8 +225,17 @@ impl StateManager {
         }
     }
 
-    pub async fn on_batch_commit_event_received(&self, event: CommitBatchEvent, block_tracer: &BlockTracer) -> Result<ProveBatchRequest> {
-        let blocks = event.chunks.clone().into_iter().flatten().collect::<Vec<_>>();
+    pub async fn on_batch_commit_event_received(
+        &self,
+        event: CommitBatchEvent,
+        block_tracer: &BlockTracer,
+    ) -> Result<ProveBatchRequest> {
+        let blocks = event
+            .chunks
+            .clone()
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
 
         if blocks.len() == 0 {
             bail!("block count is zero")
@@ -214,7 +249,7 @@ impl StateManager {
         {
             let mut state = self.batch_state.lock().unwrap();
             state.create_batch(&event, batch_info);
-            state.update_batch_header(event.batch_index-1, event.prev_batch_header.clone());
+            state.update_batch_header(event.batch_index - 1, event.prev_batch_header.clone());
         }
 
         let block_traces = block_tracer.get_block_traces(blocks).await?;
@@ -227,9 +262,13 @@ impl StateManager {
             Some(root) => root,
             // this can happen at most once on every start
             // todo: add count track here
-            None => block_traces[0].storage_trace.root_before.to_fixed_bytes().into()
+            None => block_traces[0]
+                .storage_trace
+                .root_before
+                .to_fixed_bytes()
+                .into(),
         };
-        
+
         let request = ProveBatchRequest {
             prev_batch_header: event.prev_batch_header,
             prev_state_root,
@@ -241,18 +280,21 @@ impl StateManager {
         Ok(request)
     }
 
-    pub async fn on_batch_proved(&self, response: ProveBatchResponse) -> Result<Vec<ProveBundleRequest>, StateManagerError> {
+    pub async fn on_batch_proved(
+        &self,
+        response: ProveBatchResponse,
+    ) -> Result<Vec<ProveBundleRequest>, StateManagerError> {
         {
             let mut state = self.batch_state.lock().unwrap();
             state.update_batch_proof(response);
         }
-        
+
         self.try_build_prove_bundle_request()
     }
 
     fn try_build_prove_bundle_request(&self) -> Result<Vec<ProveBundleRequest>, StateManagerError> {
         let mut requests = vec![];
-        
+
         let bundles = {
             let mut bundle_state = self.bundle_state.lock().unwrap();
             bundle_state.get_pending_bundles()
@@ -267,9 +309,7 @@ impl StateManager {
             let mut request = {
                 let state = self.batch_state.lock().unwrap();
                 match state.collect_batch_infos(bundle.begin_batch_index, bundle.end_batch_index) {
-                    Result::Ok(req) => {
-                        req
-                    },
+                    Result::Ok(req) => req,
                     Err(err) => {
                         // todo: add log
                         break;
@@ -285,12 +325,16 @@ impl StateManager {
         Result::Ok(requests)
     }
 
-    pub async fn on_batch_finalize_event_received(&self, event: FinalizeBatchEvent) -> Result<Vec<ProveBundleRequest>, StateManagerError> {
+    pub async fn on_batch_finalize_event_received(
+        &self,
+        event: FinalizeBatchEvent,
+    ) -> Result<Vec<ProveBundleRequest>, StateManagerError> {
         // track latest_finalized_batch_index
         let last_finalized_batch_index = self
-        .l1_client
-        .get_last_tee_finalized_batch_index()
-        .await.map_err(EthError::from)?;
+            .l1_client
+            .get_last_tee_finalized_batch_index()
+            .await
+            .map_err(EthError::from)?;
 
         if event.batch_index < last_finalized_batch_index {
             return Err(StateManagerError::Custom("test".into()));

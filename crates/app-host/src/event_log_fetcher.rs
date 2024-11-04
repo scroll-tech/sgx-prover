@@ -1,11 +1,14 @@
+use crate::{
+    l1_client::{self, L1Client},
+    types::{CommitBatchEvent, FinalizeBatchEvent, ScrollChain},
+};
 use alloy::{eips::BlockNumberOrTag, primitives::Address, sol_types::SolEvent};
+use anyhow::Result;
 use base::eth::EthError;
-use crate::{l1_client::{self, L1Client}, types::{CommitBatchEvent, FinalizeBatchEvent, ScrollChain}};
+use event_log_parser::EventLogParser;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::{sync::mpsc::Sender, time::interval};
-use anyhow::Result;
-use std::sync::Arc;
-use event_log_parser::EventLogParser;
 
 base::stack_error! {
     #[derive(Debug)]
@@ -46,7 +49,8 @@ impl EventLogFetcher {
         scroll_chain_address: Address,
         max_size_per_fetch: u64,
         commit_batch_tx: Sender<CommitBatchEvent>,
-        finalize_batch_tx: Sender<FinalizeBatchEvent>,) -> Self {
+        finalize_batch_tx: Sender<FinalizeBatchEvent>,
+    ) -> Self {
         Self {
             event_log_parser: EventLogParser::new(l1_client.clone()),
             l1_client,
@@ -60,13 +64,17 @@ impl EventLogFetcher {
     }
 
     async fn get_latest_finalized_block(&self) -> Result<u64, EventLogError> {
-        let block = self.l1_client.get_block_by_number(BlockNumberOrTag::Finalized).await.map_err(EthError::from)?;
+        let block = self
+            .l1_client
+            .get_block_by_number(BlockNumberOrTag::Finalized)
+            .await
+            .map_err(EthError::from)?;
         if block.is_none() {
             return Err(EventLogError::Fetcher("get empty block".into()));
         }
         match block.unwrap().header.number {
             Some(n) => Ok(n),
-            None => Err(EventLogError::Fetcher("no block number in header".into()))
+            None => Err(EventLogError::Fetcher("no block number in header".into())),
         }
     }
 
@@ -83,7 +91,11 @@ impl EventLogFetcher {
             to = last_finalized_block;
         }
 
-        let logs = self.l1_client.get_logs(self.scroll_chain_address, event_signatures, from, to).await.map_err(EthError::from)?;
+        let logs = self
+            .l1_client
+            .get_logs(self.scroll_chain_address, event_signatures, from, to)
+            .await
+            .map_err(EthError::from)?;
 
         for log in logs {
             match log.topic0() {
@@ -91,22 +103,22 @@ impl EventLogFetcher {
                     match self.event_log_parser.parse_commit_batch_log(log).await {
                         Ok(event) => {
                             self.commit_batch_tx.send(event).await;
-                        },
+                        }
                         Err(err) => {
                             todo!()
                         }
                     }
-                },
+                }
                 Some(&ScrollChain::FinalizeBatch::SIGNATURE_HASH) => {
                     match self.event_log_parser.parse_finalize_batch_log(log).await {
                         Ok(event) => {
                             self.finalize_batch_tx.send(event).await;
-                        },
+                        }
                         Err(err) => {
                             todo!()
                         }
                     }
-                },
+                }
                 _ => {
                     todo!()
                 }
@@ -126,16 +138,15 @@ impl EventLogFetcher {
     }
 }
 
-
 mod event_log_parser {
     use super::*;
-    use std::sync::Arc;
     use alloy::{primitives::hex, rpc::types::Log, sol_types::SolCall};
+    use std::sync::Arc;
 
     pub struct EventLogParser {
-        l1_client: Arc<L1Client>
+        l1_client: Arc<L1Client>,
     }
-    
+
     // todo, move to another crate
     fn decode_block_numbers(mut data: &[u8]) -> Option<Vec<u64>> {
         if data.len() < 1 {
@@ -146,7 +157,7 @@ mod event_log_parser {
         if data.len() < num_blocks * 60 {
             return None;
         }
-    
+
         let mut numbers = Vec::new();
         let mut tmp = [0_u8; 8];
         for i in 0..num_blocks {
@@ -156,29 +167,37 @@ mod event_log_parser {
         }
         Some(numbers)
     }
-    
+
     impl EventLogParser {
         pub fn new(l1_client: Arc<L1Client>) -> Self {
-            Self {l1_client}
+            Self { l1_client }
         }
 
-        pub async fn parse_commit_batch_log(&self, log: Log) -> Result<CommitBatchEvent, EventLogError> {
-            let log_decoded: Log<ScrollChain::CommitBatch> = log.log_decode().map_err(EthError::from)?;
-    
+        pub async fn parse_commit_batch_log(
+            &self,
+            log: Log,
+        ) -> Result<CommitBatchEvent, EventLogError> {
+            let log_decoded: Log<ScrollChain::CommitBatch> =
+                log.log_decode().map_err(EthError::from)?;
+
             if log.transaction_hash.is_none() {
                 return Err(EventLogError::Parser("empty transaction hash".into()));
             }
-    
-            let tx = self.l1_client.get_transaction_by_hash(log.transaction_hash.unwrap()).await.map_err(EthError::from)?;
+
+            let tx = self
+                .l1_client
+                .get_transaction_by_hash(log.transaction_hash.unwrap())
+                .await
+                .map_err(EthError::from)?;
             if tx.is_none() {
                 return Err(EventLogError::Parser("empty transaction".into()));
             }
-            let input = hex::decode(tx.unwrap().input).map_err(|err| {
-                EventLogError::Parser(format!("{err:?}").into())
-            })?;
-    
-            let tx_decoded = ScrollChain::commitBatchWithBlobProofCall::abi_decode(&input, false).map_err(EthError::from)?;
-    
+            let input = hex::decode(tx.unwrap().input)
+                .map_err(|err| EventLogError::Parser(format!("{err:?}").into()))?;
+
+            let tx_decoded = ScrollChain::commitBatchWithBlobProofCall::abi_decode(&input, false)
+                .map_err(EthError::from)?;
+
             let mut chunks = vec![];
             for chunk in tx_decoded._chunks {
                 if let Some(blks) = decode_block_numbers(&chunk) {
@@ -187,8 +206,8 @@ mod event_log_parser {
                     todo!()
                 }
             }
-    
-            Ok(CommitBatchEvent{
+
+            Ok(CommitBatchEvent {
                 batch_index: log_decoded.data().batchIndex.to(),
                 batch_hash: log_decoded.data().batchHash,
                 batch_version: tx_decoded._version,
@@ -196,26 +215,34 @@ mod event_log_parser {
                 prev_batch_header: tx_decoded._parentBatchHeader,
             })
         }
-    
-        pub async fn parse_finalize_batch_log(&self, log: Log) -> Result<FinalizeBatchEvent, EventLogError> {
-            let log_decoded: Log<ScrollChain::FinalizeBatch> = log.log_decode().map_err(EthError::from)?;
-    
+
+        pub async fn parse_finalize_batch_log(
+            &self,
+            log: Log,
+        ) -> Result<FinalizeBatchEvent, EventLogError> {
+            let log_decoded: Log<ScrollChain::FinalizeBatch> =
+                log.log_decode().map_err(EthError::from)?;
+
             if log.transaction_hash.is_none() {
                 return Err(EventLogError::Parser("empty transaction hash".into()));
             }
-    
-            let tx = self.l1_client.get_transaction_by_hash(log.transaction_hash.unwrap()).await.map_err(EthError::from)?;
+
+            let tx = self
+                .l1_client
+                .get_transaction_by_hash(log.transaction_hash.unwrap())
+                .await
+                .map_err(EthError::from)?;
             if tx.is_none() {
                 return Err(EventLogError::Parser("empty transaction".into()));
             }
-            let input = hex::decode(tx.unwrap().input).map_err(|err| {
-                EventLogError::Parser(format!("{err:?}").into())
-            })?;
-    
+            let input = hex::decode(tx.unwrap().input)
+                .map_err(|err| EventLogError::Parser(format!("{err:?}").into()))?;
+
             // Decode the input using the generated `swapExactTokensForTokens` bindings.
-            let tx_decoded = ScrollChain::finalizeBundleWithProofCall::abi_decode(&input, false).map_err(EthError::from)?;
-    
-            Ok(FinalizeBatchEvent{
+            let tx_decoded = ScrollChain::finalizeBundleWithProofCall::abi_decode(&input, false)
+                .map_err(EthError::from)?;
+
+            Ok(FinalizeBatchEvent {
                 batch_index: log_decoded.data().batchIndex.to(),
                 batch_hash: log_decoded.data().batchHash,
                 end_batch_header: tx_decoded._batchHeader,

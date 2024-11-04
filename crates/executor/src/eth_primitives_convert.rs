@@ -53,7 +53,6 @@ impl EthPrimitivesConvert<EU256> for AU256 {
     }
 }
 
-
 impl EthPrimitivesConvert<AB256> for EB256 {
     fn to(self) -> AB256 {
         self.0.into()

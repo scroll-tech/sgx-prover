@@ -1,5 +1,5 @@
 use alloy::primitives::U64;
-use base::eth::{PrimitivesConvert, Eth, EthError};
+use base::eth::{Eth, EthError, PrimitivesConvert};
 use scroll_executor::BlockTrace;
 
 #[derive(Clone)]

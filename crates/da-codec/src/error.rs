@@ -45,8 +45,15 @@ impl From<c_kzg::Error> for BatchError {
 pub enum DataCompatibilityError {
     SizeTooSmall(Bytes),
     UnexpectedHeaderType(u8),
-    UnexpectedBlkType { blk_ty: u8, blk_size: usize, is_last: bool },
-    WrongDataLen { len: usize, min: usize },
+    UnexpectedBlkType {
+        blk_ty: u8,
+        blk_size: usize,
+        is_last: bool,
+    },
+    WrongDataLen {
+        len: usize,
+        min: usize,
+    },
     UnexpectedEndBeforeLastBlock,
 }
 

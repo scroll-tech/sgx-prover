@@ -10,10 +10,10 @@ pub mod v4;
 pub(crate) mod prelude {
     pub use super::super::{BatchError, BatchVersionedType};
     pub use super::utils::*;
-    pub use scroll_executor::{revm::primitives::keccak256, B256, U256, Transaction};
-    pub use serde::{Deserialize, Serialize};
     #[cfg(test)]
     pub use crate::testdata;
+    pub use scroll_executor::{revm::primitives::keccak256, Transaction, B256, U256};
+    pub use serde::{Deserialize, Serialize};
 }
 
 use prelude::*;
@@ -35,7 +35,6 @@ pub enum DABatch {
     V3(v3::DABatch),
     V4(v4::DABatch),
 }
-
 
 impl DABatch {
     pub fn total_l1_message_popped(&self) -> u64 {
@@ -113,7 +112,5 @@ impl DABatch {
 #[cfg(test)]
 mod test {
     #[test]
-    fn test_v0_codec() {
-        
-    }
+    fn test_v0_codec() {}
 }

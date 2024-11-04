@@ -1,7 +1,7 @@
+use alloy::primitives::Address;
 use anyhow::Result;
 use serde::Deserialize;
 use std::fs::File;
-use alloy::primitives::Address;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {

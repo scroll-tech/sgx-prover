@@ -2,11 +2,15 @@ use jsonrpsee::http_client::HttpClient;
 use rpc::{ProveBatchRequest, ProveBatchResponse, ProveBundleRequest};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 
-use crate::{block_tracer::{self, BlockTracer}, l1_client::L1Client, types::{CommitBatchEvent, FinalizeBatchEvent}};
-use std::sync::Arc;
 use crate::state_manager::StateManager;
-use rpc::ScrollSgxClient;
+use crate::{
+    block_tracer::{self, BlockTracer},
+    l1_client::L1Client,
+    types::{CommitBatchEvent, FinalizeBatchEvent},
+};
 use anyhow::Result;
+use rpc::ScrollSgxClient;
+use std::sync::Arc;
 
 pub struct TaskManager {
     state_manager: StateManager,
@@ -23,9 +27,12 @@ impl TaskManager {
         max_block_trace_workers: usize,
     ) -> Result<Self> {
         let enclave_client = rpc::create_client(enclave_endpoint)?;
-        log::info!("created enclave client, address = {:?}", enclave_client.get_address().await.unwrap());
+        log::info!(
+            "created enclave client, address = {:?}",
+            enclave_client.get_address().await.unwrap()
+        );
         let block_tracer = BlockTracer::new(l2_endpoint, max_block_trace_workers)?;
-        Ok(Self{
+        Ok(Self {
             state_manager: StateManager::new(l1_client.clone()),
             l1_client,
             enclave_client,
@@ -38,7 +45,7 @@ impl TaskManager {
             match self.enclave_client.prove_batch(request.clone()).await {
                 Ok(resp) => {
                     break resp;
-                },
+                }
                 Err(err) => {
                     // todo add log
                     tokio::time::sleep(core::time::Duration::from_secs(5));
@@ -52,7 +59,7 @@ impl TaskManager {
             match self.enclave_client.prove_bundle(request.clone()).await {
                 Ok(resp) => {
                     break resp;
-                },
+                }
                 Err(err) => {
                     // todo add log
                     tokio::time::sleep(core::time::Duration::from_secs(5));
@@ -65,15 +72,19 @@ impl TaskManager {
             let post_state_root = request.state_roots[last_index];
             let withdraw_root = request.withdraw_roots[last_index];
             let tee_proof = response.signature.as_bytes().into();
-            match self.l1_client.finalize_bundle_with_tee_proof(
-                batch_header,
-                post_state_root,
-                withdraw_root,
-                tee_proof
-            ).await {
+            match self
+                .l1_client
+                .finalize_bundle_with_tee_proof(
+                    batch_header,
+                    post_state_root,
+                    withdraw_root,
+                    tee_proof,
+                )
+                .await
+            {
                 Ok(resp) => {
                     break;
-                },
+                }
                 Err(err) => {
                     // todo add log
                     tokio::time::sleep(core::time::Duration::from_secs(5));
@@ -85,10 +96,14 @@ impl TaskManager {
     async fn handle_batch_event(
         &self,
         mut rx: Receiver<CommitBatchEvent>,
-        prove_batch_tx: Sender<ProveBatchResponse>
+        prove_batch_tx: Sender<ProveBatchResponse>,
     ) -> () {
         while let Some(event) = rx.recv().await {
-            if let Ok(request) = self.state_manager.on_batch_commit_event_received(event, &self.block_tracer).await {
+            if let Ok(request) = self
+                .state_manager
+                .on_batch_commit_event_received(event, &self.block_tracer)
+                .await
+            {
                 let response = self.prove_batch(request).await;
                 prove_batch_tx.send(response).await;
             } else {
@@ -100,8 +115,8 @@ impl TaskManager {
     async fn handle_bundle_event(
         &self,
         mut rx: Receiver<FinalizeBatchEvent>,
-        mut prove_batch_rx: Receiver<ProveBatchResponse>) -> () {
-        
+        mut prove_batch_rx: Receiver<ProveBatchResponse>,
+    ) -> () {
         loop {
             let requests = tokio::select! {
                 finalize_batch_option = rx.recv() => {
@@ -136,7 +151,8 @@ impl TaskManager {
         }
     }
 
-    pub async fn start(task_manager: Self,
+    pub async fn start(
+        task_manager: Self,
         commit_batch_event_rx: Receiver<CommitBatchEvent>,
         finalize_batch_event_rx: Receiver<FinalizeBatchEvent>,
     ) {
@@ -155,7 +171,7 @@ impl TaskManager {
         ()
     }
 
-     // pub async fn start(&self,
+    // pub async fn start(&self,
     //     commit_batch_event_rx: Receiver<CommitBatchEvent>,
     //     finalize_batch_event_rx: Receiver<FinalizeBatchEvent>,
     // ) {
@@ -170,7 +186,7 @@ impl TaskManager {
     //     let proof_state_manager_copy = proof_state_manager.clone();
     //     tokio::spawn(async move {
     //         TaskManager::handle_batch_event(
-    //             proof_state_manager_copy, 
+    //             proof_state_manager_copy,
     //             enclave_client_copy,
     //             block_tracer,
     //             commit_batch_event_rx,
@@ -179,7 +195,7 @@ impl TaskManager {
 
     //     tokio::spawn(async move {
     //         TaskManager::handle_bundle_event(
-    //             proof_state_manager, 
+    //             proof_state_manager,
     //             enclave_client,
     //             l1_client,
     //             finalize_batch_event_rx,

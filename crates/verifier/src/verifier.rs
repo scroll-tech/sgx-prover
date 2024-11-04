@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use base::eth::{EthError, primitives::B256};
+use base::eth::{primitives::B256, EthError};
 use base::prover::{Pob, Poe};
 use base::{thread::parallel, trace::Alive};
 use scroll_da_codec::{BatchError, BatchTask};
@@ -65,11 +65,7 @@ impl ScrollBatchVerifier {
         Ok(key)
     }
 
-    pub async fn prove(
-        &self,
-        pob_list: &[Pob],
-        batch_data: &[u8],
-    ) -> Result<Poe, ValidateError> {
+    pub async fn prove(&self, pob_list: &[Pob], batch_data: &[u8]) -> Result<Poe, ValidateError> {
         let batch = BatchTask::from_calldata(batch_data)?;
         let ctx_list = pob_list
             .iter()

@@ -15,7 +15,5 @@ impl Prover {
         todo!()
     }
 
-    pub async fn start(&self) -> () {
-
-    }
+    pub async fn start(&self) -> () {}
 }

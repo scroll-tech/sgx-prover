@@ -5,20 +5,19 @@ use l1_client::L1Client;
 use task_manager::TaskManager;
 use tokio::sync::mpsc;
 
-use event_log_fetcher::EventLogFetcher;
-use types::{CommitBatchEvent, FinalizeBatchEvent};
 use clap::{ArgAction, Parser};
+use event_log_fetcher::EventLogFetcher;
 use std::sync::Arc;
+use types::{CommitBatchEvent, FinalizeBatchEvent};
 
-mod config;
-mod types;
-mod l1_client;
-mod event_log_fetcher;
-mod task_manager;
-mod state_manager;
-mod prover;
 mod block_tracer;
-
+mod config;
+mod event_log_fetcher;
+mod l1_client;
+mod prover;
+mod state_manager;
+mod task_manager;
+mod types;
 
 #[derive(Debug, Parser)]
 #[command(version, about = "SGX Prover")]
@@ -40,7 +39,7 @@ pub async fn start() -> Result<()> {
 
     let eth = Eth::dial(&config.l1_endpoint, Some(&config.l1_account_pk))?;
 
-    let l1_client = Arc::new(L1Client{
+    let l1_client = Arc::new(L1Client {
         eth,
         scroll_chain_address: config.scroll_chain_address,
         prover_registry_address: config.prover_registry_address,
@@ -50,11 +49,13 @@ pub async fn start() -> Result<()> {
 
     let (finalize_batch_tx, finalize_batch_rx) = mpsc::channel::<FinalizeBatchEvent>(32);
 
-    let event_fetcher = EventLogFetcher::new(l1_client.clone(),
+    let event_fetcher = EventLogFetcher::new(
+        l1_client.clone(),
         config.scroll_chain_address,
         config.max_size_per_fetch_l1_event,
         commit_batch_tx,
-         finalize_batch_tx);
+        finalize_batch_tx,
+    );
 
     let h = tokio::spawn(async move {
         event_fetcher.start();
@@ -65,7 +66,8 @@ pub async fn start() -> Result<()> {
         config.enclave_endpoint,
         config.l2_endpoint,
         config.max_block_trace_workers,
-    ).await?;
+    )
+    .await?;
 
     TaskManager::start(task_manager, commit_batch_rx, finalize_batch_rx).await;
 

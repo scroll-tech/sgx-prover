@@ -1,4 +1,7 @@
-use alloy::{primitives::{Bytes, B256}, sol};
+use alloy::{
+    primitives::{Bytes, B256},
+    sol,
+};
 
 pub type BatchHash = B256;
 pub type StateRoot = B256;
@@ -28,4 +31,3 @@ pub struct FinalizeBatchEvent {
     pub end_state_root: StateRoot,
     pub end_withdraw_root: WithdrawRoot,
 }
-

@@ -38,33 +38,41 @@ pub struct L1Client {
 }
 
 impl L1Client {
-    pub async fn get_block_by_number(&self, block_number: BlockNumberOrTag) -> Result<Option<Block>, EthError> {
+    pub async fn get_block_by_number(
+        &self,
+        block_number: BlockNumberOrTag,
+    ) -> Result<Option<Block>, EthError> {
         let block = self
-        .eth
-        .provider()
-        .get_block_by_number(block_number, false)
-        .await?;
+            .eth
+            .provider()
+            .get_block_by_number(block_number, false)
+            .await?;
 
         Ok(block)
     }
 
-    pub async fn get_logs<T: Into<BlockNumberOrTag>>(&self, contract: Address, event_signatures: Vec<FixedBytes<32>>, from: T, to: T) -> Result<Vec<Log>, EthError> {
+    pub async fn get_logs<T: Into<BlockNumberOrTag>>(
+        &self,
+        contract: Address,
+        event_signatures: Vec<FixedBytes<32>>,
+        from: T,
+        to: T,
+    ) -> Result<Vec<Log>, EthError> {
         let filter = Filter::new()
-        .address(contract)
-        .event_signature(event_signatures)
-        .from_block(from)
-        .to_block(to);
+            .address(contract)
+            .event_signature(event_signatures)
+            .from_block(from)
+            .to_block(to);
 
         let logs = self.eth.provider().get_logs(&filter).await?;
         Ok(logs)
     }
 
-    pub async fn get_transaction_by_hash(&self, tx_hash: TxHash) -> Result<Option<Transaction>, EthError> {
-        let transaction = self
-        .eth
-        .provider()
-        .get_transaction_by_hash(tx_hash)
-        .await?;
+    pub async fn get_transaction_by_hash(
+        &self,
+        tx_hash: TxHash,
+    ) -> Result<Option<Transaction>, EthError> {
+        let transaction = self.eth.provider().get_transaction_by_hash(tx_hash).await?;
         Ok(transaction)
     }
 
@@ -104,6 +112,9 @@ impl L1Client {
 
     pub async fn get_last_tee_finalized_batch_index(&self) -> Result<u64, EthError> {
         let call = ScrollChain::lastTeeFinalizedBatchIndexCall {};
-        self.eth.call(self.scroll_chain_address, &call).await.map(|ret| ret._0.to())
+        self.eth
+            .call(self.scroll_chain_address, &call)
+            .await
+            .map(|ret| ret._0.to())
     }
 }

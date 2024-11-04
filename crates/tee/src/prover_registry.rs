@@ -1,8 +1,4 @@
-use alloy::{
-    primitives::Address,
-    rpc::types::TransactionReceipt,
-    sol_types::SolEvent,
-};
+use alloy::{primitives::Address, rpc::types::TransactionReceipt, sol_types::SolEvent};
 use ProverRegistryStub::ProverRegistryStubErrors;
 
 use base::eth::{Eth, EthError};
