@@ -59,6 +59,7 @@ pub enum DataCompatibilityError {
 
 #[cfg(test)]
 base::stack_error! {
+    #[derive(Debug)]
     name: BatchTestError,
     stack_name: BatchTestErrorStack,
     error: {
