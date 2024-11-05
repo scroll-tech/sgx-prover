@@ -1,4 +1,4 @@
-use alloy::primitives::{keccak256, Address, ChainId, Signature};
+use alloy::primitives::{keccak256, B256, Address, ChainId, Signature};
 use alloy::signers::{local::PrivateKeySigner, Signer};
 use alloy::sol_types::{eip712_domain, Eip712Domain, SolStruct};
 
@@ -14,11 +14,11 @@ impl EnclaveSigner {
         let signer = PrivateKeySigner::random();
 
         let domain = eip712_domain! {
-            name: "ScrollChain",
+            name: "SGXVerifier",
             version: "1",
             chain_id: chain_id,
             verifying_contract: verifying_contract,
-            salt: keccak256("test"),
+            salt: B256::ZERO,
         };
 
         Self {

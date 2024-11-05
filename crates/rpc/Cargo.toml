@@ -14,3 +14,6 @@ scroll-executor.workspace = true
 scroll-verifier.workspace = true
 serde.workspace = true
 tokio.workspace = true
+tee.workspace = true
+base.workspace = true
+clap.workspace = true

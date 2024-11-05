@@ -3717,6 +3717,8 @@ version = "0.1.0"
 dependencies = [
  "alloy",
  "anyhow",
+ "base",
+ "clap",
  "eth-types",
  "jsonrpsee",
  "log",
@@ -3724,6 +3726,7 @@ dependencies = [
  "scroll-executor",
  "scroll-verifier",
  "serde",
+ "tee",
  "tokio",
 ]
 
@@ -4649,6 +4652,7 @@ dependencies = [
  "log",
  "rand",
  "secp256k1",
+ "serde",
 ]
 
 [[package]]

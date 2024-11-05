@@ -20,7 +20,7 @@ mod task_manager;
 mod types;
 
 #[derive(Debug, Parser)]
-#[command(version, about = "SGX Prover")]
+#[command(version, about = "SGX Prover Host")]
 struct Opts {
     #[clap(short, default_value = "18232")]
     port: u64,
@@ -37,7 +37,7 @@ pub async fn start() -> Result<()> {
 
     let config = Config::from_file(opts.config_file)?;
 
-    let eth = Eth::dial(&config.l1_endpoint, Some(&config.l1_account_pk))?;
+    let eth = Eth::dial(&config.l1_endpoint, Some(&config.l1_account_pk)).map_err(|e|{anyhow::anyhow!("{e:?}")})?;
 
     let l1_client = Arc::new(L1Client {
         eth,

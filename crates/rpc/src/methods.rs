@@ -4,6 +4,7 @@ use alloy::primitives::Address;
 
 use jsonrpsee::proc_macros::rpc;
 use jsonrpsee::types::ErrorObjectOwned;
+use tee::AttestationReport;
 
 #[rpc(server, client, namespace = "sgx")]
 pub trait ScrollSgx {
@@ -14,7 +15,7 @@ pub trait ScrollSgx {
     async fn get_address(&self) -> Result<Address, ErrorObjectOwned>;
 
     #[method(name = "generateAttestationReport")]
-    async fn generate_attestation_report(&self) -> Result<String, ErrorObjectOwned>;
+    async fn generate_attestation_report(&self) -> Result<AttestationReport, ErrorObjectOwned>;
 
     #[method(name = "proveBatch")]
     async fn prove_batch(
