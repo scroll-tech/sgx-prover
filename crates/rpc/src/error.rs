@@ -1,6 +1,5 @@
 use core::fmt::Debug;
 
-use anyhow::bail;
 use jsonrpsee::types::{
     error::{INTERNAL_ERROR_CODE, INTERNAL_ERROR_MSG, INVALID_PARAMS_CODE, INVALID_PARAMS_MSG},
     ErrorObjectOwned,

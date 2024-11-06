@@ -49,7 +49,7 @@ pub async fn start() -> Result<()> {
 
     let (finalize_batch_tx, finalize_batch_rx) = mpsc::channel::<FinalizeBatchEvent>(32);
 
-    let event_fetcher = EventLogFetcher::new(
+    let mut event_fetcher = EventLogFetcher::new(
         l1_client.clone(),
         config.scroll_chain_address,
         config.l1_event_max_size_per_fetch,
@@ -59,7 +59,7 @@ pub async fn start() -> Result<()> {
     );
 
     let h = tokio::spawn(async move {
-        event_fetcher.start();
+        event_fetcher.start().await
     });
 
     let task_manager = TaskManager::new(
