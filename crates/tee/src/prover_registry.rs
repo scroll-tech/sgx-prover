@@ -2,6 +2,7 @@ use alloy::{primitives::Address, rpc::types::TransactionReceipt, sol_types::SolE
 use ProverRegistryStub::ProverRegistryStubErrors;
 
 use base::eth::{Eth, EthError};
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct ProverRegistry {
@@ -55,6 +56,18 @@ impl ProverRegistry {
             }
         }
         return None;
+    }
+
+    pub async fn check_register_status(&self, address: Address) -> Result<Registration, RegistryError> {
+        let call = ProverRegistryStub::attestedProversCall {
+            _0: address,
+        };
+
+        let ret = self.eth.call(self.contract, &call).await?;
+        Ok(Registration {
+            address: ret.addr,
+            valid_until: ret.validUntil,
+        })
     }
 
     pub async fn register<T>(&self, report: T) -> Result<Registration, RegistryError>

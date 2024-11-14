@@ -2,6 +2,7 @@ use anyhow::Result;
 use base::eth::Eth;
 use config::Config;
 use l1_client::L1Client;
+use liveness_manager::LivenessManager;
 use task_manager::TaskManager;
 use tokio::sync::mpsc;
 
@@ -14,7 +15,7 @@ mod block_tracer;
 mod config;
 mod event_log_fetcher;
 mod l1_client;
-mod prover;
+mod liveness_manager;
 mod state_manager;
 mod task_manager;
 mod types;
@@ -40,7 +41,7 @@ pub async fn start() -> Result<()> {
     let eth = Eth::dial(&config.l1_endpoint, Some(&config.l1_account_pk)).map_err(|e|{anyhow::anyhow!("{e:?}")})?;
 
     let l1_client = Arc::new(L1Client {
-        eth,
+        eth: eth.clone(),
         scroll_chain_address: config.scroll_chain_address,
         prover_registry_address: config.prover_registry_address,
     });
@@ -58,21 +59,44 @@ pub async fn start() -> Result<()> {
         finalize_batch_tx,
     );
 
-    let h = tokio::spawn(async move {
+    let fetcher_handler = tokio::spawn(async move {
         event_fetcher.start().await
+    });
+
+    let enclave_client = rpc::create_client(config.enclave_endpoint)?;
+
+    let mut liveness_manager = LivenessManager::new(
+        eth, 
+        config.prover_registry_address,
+        enclave_client.clone(),
+    );
+
+    let liveness_handler = tokio::spawn(async move {
+        liveness_manager.start().await
     });
 
     let task_manager = TaskManager::new(
         l1_client.clone(),
-        config.enclave_endpoint,
+        enclave_client,
         config.l2_endpoint,
         config.max_block_trace_workers,
     )
     .await?;
 
     TaskManager::start(task_manager, commit_batch_rx, finalize_batch_rx).await;
-
-    tokio::join!(h);
+    
+    tokio::select! {
+        liveness_join = liveness_handler => {
+            if let Err(err) = liveness_join.expect("liveness join failed") {
+                log::error!("liveness failed: {:?}", err);
+            }
+        }
+        fetcher_join = fetcher_handler => {
+            if let Err(err) = fetcher_join.expect("fetcher join failed") {
+                log::error!("fetcher failed: {:?}", err);
+            }
+        }
+    };
     Ok(())
 }
 

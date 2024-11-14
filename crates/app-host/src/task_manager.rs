@@ -11,6 +11,7 @@ use crate::{
 use anyhow::Result;
 use rpc::ScrollSgxClient;
 use std::sync::Arc;
+use std::thread::JoinHandle;
 
 pub struct TaskManager {
     state_manager: StateManager,
@@ -22,15 +23,10 @@ pub struct TaskManager {
 impl TaskManager {
     pub async fn new(
         l1_client: Arc<L1Client>,
-        enclave_endpoint: String,
+        enclave_client: HttpClient,
         l2_endpoint: String,
         max_block_trace_workers: usize,
     ) -> Result<Self> {
-        let enclave_client = rpc::create_client(enclave_endpoint)?;
-        log::info!(
-            "created enclave client, address = {:?}",
-            enclave_client.get_address().await.unwrap()
-        );
         let block_tracer = BlockTracer::new(l2_endpoint, max_block_trace_workers)?;
         Ok(Self {
             state_manager: StateManager::new(l1_client.clone()),
@@ -167,41 +163,5 @@ impl TaskManager {
         tokio::spawn(async move {
             task_manager_2.handle_bundle_event(finalize_batch_event_rx, prove_batch_resp_rx);
         });
-
-        ()
     }
-
-    // pub async fn start(&self,
-    //     commit_batch_event_rx: Receiver<CommitBatchEvent>,
-    //     finalize_batch_event_rx: Receiver<FinalizeBatchEvent>,
-    // ) {
-    //     let proof_state_manager = Arc::new(StateManager::new());
-    //     let l1_client = Arc::new(L1Client::new());
-    //     let enclave_client: Arc<HttpClient> = Arc::new(rpc::create_client("http://127.0.0.1:1234").unwrap());
-    //     let enclave_client_copy = enclave_client.clone();
-    //     let block_tracer = Arc::new(BlockTracer::new());
-
-    //     let (prove_batch_resp_tx, prove_batch_resp_rx) = mpsc::channel::<ProveBatchResponse>(32);
-
-    //     let proof_state_manager_copy = proof_state_manager.clone();
-    //     tokio::spawn(async move {
-    //         TaskManager::handle_batch_event(
-    //             proof_state_manager_copy,
-    //             enclave_client_copy,
-    //             block_tracer,
-    //             commit_batch_event_rx,
-    //             prove_batch_resp_tx);
-    //     });
-
-    //     tokio::spawn(async move {
-    //         TaskManager::handle_bundle_event(
-    //             proof_state_manager,
-    //             enclave_client,
-    //             l1_client,
-    //             finalize_batch_event_rx,
-    //             prove_batch_resp_rx);
-    //     });
-
-    //     ()
-    // }
 }

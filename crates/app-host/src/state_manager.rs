@@ -37,7 +37,6 @@ struct BatchInfo {
     batch_index: u64,
     batch_header: Option<Bytes>,
     prove_response: Option<ProveBatchResponse>,
-    start_block_number: u64,
 }
 
 struct BatchState {
@@ -209,8 +208,6 @@ impl BundleState {
 
 pub struct StateManager {
     l1_client: Arc<L1Client>,
-
-    genesis_block_number: u64,
     batch_state: Mutex<BatchState>,
     bundle_state: Mutex<BundleState>,
 }
@@ -219,7 +216,6 @@ impl StateManager {
     pub fn new(l1_client: Arc<L1Client>) -> Self {
         Self {
             l1_client,
-            genesis_block_number: 0,
             batch_state: Mutex::new(BatchState::new()),
             bundle_state: Mutex::new(BundleState::new()),
         }
@@ -244,7 +240,6 @@ impl StateManager {
             batch_index: event.batch_index,
             batch_header: None,
             prove_response: None,
-            start_block_number: blocks[0],
         };
         {
             let mut state = self.batch_state.lock().unwrap();
