@@ -1,5 +1,5 @@
 use crate::types::{
-    BatchHash, BundleSize, CommitBatchEvent, NextProver, StateRoot, VerifyBatchEvent,
+    BundleSize, VerifyBatchEvent,
 };
 
 use super::StateManagerError;

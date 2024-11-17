@@ -1,5 +1,5 @@
 use alloy::primitives::Address;
-use base::eth::{Eth, EthError};
+
 use jsonrpsee::http_client::HttpClient;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, UNIX_EPOCH};
@@ -142,7 +142,7 @@ impl LivenessManager {
     }
 
     fn get_address_info(&self) -> AddressInfo {
-        let mut info = self.address_info.lock().unwrap();
+        let info = self.address_info.lock().unwrap();
         AddressInfo {
             address: info.address,
             valid_until: info.valid_until,

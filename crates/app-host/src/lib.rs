@@ -7,7 +7,7 @@ use task_manager::TaskManager;
 use tee::ProverRegistry;
 use tokio::sync::mpsc;
 
-use clap::{ArgAction, Parser};
+use clap::{Parser};
 use event_log_fetcher::EventLogFetcher;
 use std::sync::Arc;
 use types::ScrollChainEventLog;

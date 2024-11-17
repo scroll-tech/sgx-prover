@@ -1,4 +1,4 @@
-use alloy::primitives::{Address, Bytes};
+use alloy::primitives::{Bytes};
 use base::eth::EthError;
 use jsonrpsee::http_client::HttpClient;
 use rpc::{ProveBatchRequest, ProveBatchResponse, ProveBundleRequest, ProveBundleResponse};
@@ -10,7 +10,7 @@ use crate::liveness_manager::AddressInfo;
 use crate::state_manager::{StateManager, StateManagerError};
 use crate::types::{NextProver, ScrollChainEventLog, StateRoot, WithdrawRoot};
 use crate::{
-    block_tracer::{self, BlockTracer},
+    block_tracer::{BlockTracer},
     l1_client::L1Client,
 };
 use anyhow::Result;
@@ -68,7 +68,7 @@ impl TaskManager {
                 Ok(resp) => {
                     break resp;
                 }
-                Err(err) => {
+                Err(_err) => {
                     // todo add log
                     tokio::time::sleep(core::time::Duration::from_secs(5));
                 }
@@ -85,7 +85,7 @@ impl TaskManager {
                 Ok(resp) => {
                     break resp;
                 }
-                Err(err) => {
+                Err(_err) => {
                     // todo add log
                     tokio::time::sleep(core::time::Duration::from_secs(5));
                 }
@@ -111,10 +111,10 @@ impl TaskManager {
                 )
                 .await
             {
-                Ok(resp) => {
+                Ok(_resp) => {
                     break;
                 }
-                Err(err) => {
+                Err(_err) => {
                     // todo add log
                     tokio::time::sleep(core::time::Duration::from_secs(5));
                 }
@@ -224,7 +224,7 @@ impl TaskManager {
                     StateManagerError::BatchesNotEnough(current, next_batch_index_for_bundle) => {
                         log::info!("failed to build prove_bundle_request, batches not enough. current: {}, next_batch_index_for_bundle: {}", current, next_batch_index_for_bundle);
                     }
-                    StateManagerError::Fatal(msg) => {}
+                    StateManagerError::Fatal(_msg) => {}
                     other => {
                         log::warn!("failed to build prove_bundle_request, other: {:?}", other);
                     }

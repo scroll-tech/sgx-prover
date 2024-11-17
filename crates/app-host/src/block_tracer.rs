@@ -47,7 +47,7 @@ impl BlockTracer {
         loop {
             match l2_client.trace_block(block).await {
                 Result::Ok(trace) => break trace,
-                Err(err) => {
+                Err(_err) => {
                     // todo, add log,
                 }
             }

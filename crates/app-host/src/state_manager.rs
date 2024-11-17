@@ -1,5 +1,4 @@
 use std::{
-    collections::{HashMap, VecDeque},
     sync::{Arc, Mutex},
 };
 
@@ -141,7 +140,7 @@ impl StateManager {
         };
 
         let bundle = {
-            let mut bundle_state = self.bundle_state.lock().unwrap();
+            let bundle_state = self.bundle_state.lock().unwrap();
             bundle_state.get_next_bundle(last_verified_batch_index)?
         };
 

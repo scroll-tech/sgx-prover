@@ -1,12 +1,10 @@
 use std::collections::HashMap;
 
-use base::eth::EthError;
-use rpc::{ProveBatchRequest, ProveBatchResponse, ProveBundleRequest};
+
+use rpc::{ProveBatchResponse, ProveBundleRequest};
 
 use crate::{
-    block_tracer::BlockTracer,
-    l1_client::{self, L1Client},
-    types::{BatchHash, BundleSize, CommitBatchEvent, NextProver, StateRoot, VerifyBatchEvent},
+    types::{BatchHash, CommitBatchEvent, StateRoot},
 };
 use alloy::primitives::Bytes;
 use anyhow::{bail, Result};

@@ -1,11 +1,11 @@
 use std::net::SocketAddr;
-use std::ops::Add;
 
-use alloy::primitives::{address, Address};
+
+use alloy::primitives::{Address};
 
 use alloy::sol_types::SolValue;
 use base::eth::Eth;
-use clap::{ArgAction, Parser};
+use clap::{Parser};
 use jsonrpsee::core::async_trait;
 use jsonrpsee::server::Server;
 use jsonrpsee::types::ErrorObjectOwned;
