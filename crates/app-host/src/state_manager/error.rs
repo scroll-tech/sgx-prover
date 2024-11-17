@@ -8,19 +8,14 @@ base::stack_error! {
     name: StateManagerError,
     stack_name: StateManagerErrorStack,
     error: {
-        Eth(EthError),
         General(String),
         Fatal(String),
         BatchesNotEnough(CurrentBatchIndex, NextBatchIndexForBundle),
     },
     wrap: {
+        Eth(EthError),
     },
-    stack: {}
-}
-
-impl From<EthError> for StateManagerError {
-    fn from(value: EthError) -> Self {
-        Self::Eth(value)
+    stack: {
     }
 }
 

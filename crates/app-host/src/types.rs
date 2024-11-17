@@ -1,5 +1,5 @@
 use alloy::{
-    primitives::{Address, Bytes, B256},
+    primitives::{Bytes, B256},
     sol,
 };
 
@@ -44,8 +44,4 @@ pub struct BundleSize {
     pub start_batch_index: u64,
 }
 
-#[derive(Clone, Copy)]
-pub struct NextProver {
-    pub address: Address,
-    pub expire_time: u64,
-}
+pub use tee::NextProver;

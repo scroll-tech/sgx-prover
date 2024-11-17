@@ -32,12 +32,18 @@ impl From<EthError> for FinalizeError {
 }
 
 pub struct L1Client {
-    pub eth: Eth,
-    pub scroll_chain_address: Address,
-    pub prover_registry_address: Address,
+    eth: Eth,
+    scroll_chain_address: Address,
 }
 
 impl L1Client {
+    pub fn new(eth: Eth, scroll_chain_address: Address) -> Self {
+        Self {
+            eth,
+            scroll_chain_address,
+        }
+    }
+
     pub async fn get_block_by_number(
         &self,
         block_number: BlockNumberOrTag,

@@ -1,9 +1,10 @@
 use anyhow::Result;
-use base::eth::Eth;
+use base::eth::{Eth, EthError};
 use config::Config;
 use l1_client::L1Client;
-use liveness_manager::LivenessManager;
+use liveness_manager::{LivenessError, LivenessManager};
 use task_manager::TaskManager;
+use tee::ProverRegistry;
 use tokio::sync::mpsc;
 
 use clap::{ArgAction, Parser};
@@ -29,7 +30,22 @@ struct Opts {
     config_file: String,
 }
 
-pub async fn start() -> Result<()> {
+base::stack_error! {
+    #[derive(Debug)]
+    name: AppHostError,
+    stack_name: AppHostErrorStack,
+    error: {
+    },
+    wrap: {
+        Liveness(LivenessError),
+        Eth(EthError),
+        Any(anyhow::Error)
+    },
+    stack: {
+    }
+}
+
+pub async fn start() -> Result<(), AppHostError> {
     let opts = Opts::parse();
 
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
@@ -38,14 +54,13 @@ pub async fn start() -> Result<()> {
 
     let config = Config::from_file(opts.config_file)?;
 
-    let eth = Eth::dial(&config.l1_endpoint, Some(&config.l1_account_pk))
-        .map_err(|e| anyhow::anyhow!("{e:?}"))?;
+    let eth = Eth::dial(&config.l1_endpoint, Some(&config.l1_account_pk))?;
 
-    let l1_client = Arc::new(L1Client {
-        eth: eth.clone(),
-        scroll_chain_address: config.scroll_chain_address,
-        prover_registry_address: config.prover_registry_address,
-    });
+    let l1_client = Arc::new(L1Client::new(eth.clone(), config.scroll_chain_address));
+
+    let prover_registry = Arc::new(
+        ProverRegistry::new(eth, config.prover_registry_address)
+    );
 
     let (event_log_tx, event_log_rx) = mpsc::channel::<ScrollChainEventLog>(128);
 
@@ -62,7 +77,7 @@ pub async fn start() -> Result<()> {
     let enclave_client = rpc::create_client(config.enclave_endpoint)?;
 
     let liveness_manager =
-        LivenessManager::new(eth, config.prover_registry_address, enclave_client.clone()).await?;
+        LivenessManager::new(prover_registry.clone(), enclave_client.clone()).await?;
 
     let prover_address = liveness_manager.get_shared_address_info();
 
@@ -70,12 +85,12 @@ pub async fn start() -> Result<()> {
 
     let mut task_manager = TaskManager::new(
         prover_address,
-        l1_client.clone(),
+        l1_client,
+        prover_registry,
         enclave_client,
         config.l2_endpoint,
         config.max_block_trace_workers,
-    )
-    .await?;
+    ).await?;
 
     let task_handler = tokio::spawn(async move { task_manager.start(event_log_rx).await });
 

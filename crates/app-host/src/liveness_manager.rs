@@ -13,7 +13,6 @@ base::stack_error! {
     name: LivenessError,
     stack_name: LivenessErrorStack,
     error: {
-        Eth(EthError),
         General(String),
         Fatal(String),
     },
@@ -58,7 +57,7 @@ impl AddressInfo {
 
 pub struct LivenessManager {
     enclave_client: HttpClient,
-    prover_registry: ProverRegistry,
+    prover_registry: Arc<ProverRegistry>,
 
     address_info: Arc<Mutex<AddressInfo>>,
     update_report_before_invalid_interval: u64,
@@ -66,12 +65,11 @@ pub struct LivenessManager {
 
 impl LivenessManager {
     pub async fn new(
-        eth: Eth,
-        liveness_contract: Address,
+        prover_registry: Arc<ProverRegistry>,
         enclave_client: HttpClient,
     ) -> Result<Self, LivenessError> {
         let manager = Self {
-            prover_registry: ProverRegistry::new(eth, liveness_contract),
+            prover_registry,
             enclave_client,
             address_info: Arc::new(Mutex::new(AddressInfo::init())),
             update_report_before_invalid_interval: 600,

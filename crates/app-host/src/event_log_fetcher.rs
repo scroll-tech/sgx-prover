@@ -18,21 +18,15 @@ base::stack_error! {
     name: EventLogError,
     stack_name: EventLogErrorStack,
     error: {
-        Eth(EthError),
         Fetcher(std::borrow::Cow<'static, str>),
         Parser(std::borrow::Cow<'static, str>),
         Other(std::borrow::Cow<'static, str>),
         Fatal(String),
     },
     wrap: {
+        Eth(EthError),
     },
     stack: {}
-}
-
-impl From<EthError> for EventLogError {
-    fn from(value: EthError) -> Self {
-        Self::Eth(value)
-    }
 }
 
 trait OkOrEventError<T> {

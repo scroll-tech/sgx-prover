@@ -78,7 +78,7 @@ impl BatchState {
     pub fn get_batch_info(&self, batch_index: u64) -> Option<BatchInfo> {
         self.index_hash_map
             .get(&batch_index)
-            .map(|batch_hash| self.hash_info_map[batch_hash])
+            .map(|batch_hash| self.hash_info_map[batch_hash].clone())
     }
 
     pub fn collect_batch_infos(

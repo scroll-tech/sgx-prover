@@ -2,7 +2,6 @@ use alloy::{primitives::Address, rpc::types::TransactionReceipt, sol_types::SolE
 use ProverRegistryStub::ProverRegistryStubErrors;
 
 use base::eth::{Eth, EthError};
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct ProverRegistry {
@@ -91,6 +90,19 @@ impl ProverRegistry {
             valid_until: instance_add.validUntil.to(),
         })
     }
+
+    pub async fn get_next_prover(&self) -> Result<NextProver, EthError> {
+        let call = ProverRegistryStub::nextProverCall { };
+        self.eth
+            .call(self.contract, &call)
+            .await
+            .map(|ret| {
+                NextProver{
+                    address: ret.prover,
+                    expire_time: ret.expireTime,
+                }
+            })
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -103,4 +115,10 @@ alloy::sol! {
     #[derive(Debug, Default)]
     ProverRegistryStub,
     "abi/SGXVerifier.json"
+}
+
+#[derive(Clone, Copy)]
+pub struct NextProver {
+    pub address: Address,
+    pub expire_time: u64,
 }

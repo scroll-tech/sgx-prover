@@ -1,6 +1,8 @@
 use alloy::primitives::{Address, Bytes};
+use base::eth::EthError;
 use jsonrpsee::http_client::HttpClient;
 use rpc::{ProveBatchRequest, ProveBatchResponse, ProveBundleRequest, ProveBundleResponse};
+use tee::ProverRegistry;
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tokio::time::interval;
 
@@ -25,6 +27,7 @@ base::stack_error! {
         General(String),
     },
     wrap: {
+        Eth(EthError),
     },
     stack: {}
 }
@@ -32,6 +35,7 @@ base::stack_error! {
 pub struct TaskManager {
     state_manager: Arc<StateManager>,
     l1_client: Arc<L1Client>,
+    prover_registry: Arc<ProverRegistry>,
     enclave_client: Arc<HttpClient>,
     block_tracer: BlockTracer,
 
@@ -42,6 +46,7 @@ impl TaskManager {
     pub async fn new(
         prover_address: Arc<Mutex<AddressInfo>>,
         l1_client: Arc<L1Client>,
+        prover_registry: Arc<ProverRegistry>,
         enclave_client: HttpClient,
         l2_endpoint: String,
         max_block_trace_workers: usize,
@@ -50,14 +55,11 @@ impl TaskManager {
         Ok(Self {
             state_manager: Arc::new(StateManager::new(l1_client.clone())),
             l1_client,
+            prover_registry,
             enclave_client: Arc::new(enclave_client),
             block_tracer,
             prover_address,
         })
-    }
-
-    async fn get_next_prover(&self) -> Result<NextProver, TaskManagerError> {
-        todo!()
     }
 
     async fn prove_batch(&self, request: ProveBatchRequest) -> ProveBatchResponse {
@@ -125,7 +127,7 @@ impl TaskManager {
         &self,
         sender: &Sender<NextProver>,
     ) -> Result<(), TaskManagerError> {
-        let next_prover: NextProver = self.get_next_prover().await?;
+        let next_prover: NextProver = self.prover_registry.get_next_prover().await?;
         sender.send(next_prover).await;
         Ok(())
     }
