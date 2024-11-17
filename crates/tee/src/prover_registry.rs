@@ -58,10 +58,11 @@ impl ProverRegistry {
         return None;
     }
 
-    pub async fn check_register_status(&self, address: Address) -> Result<Registration, RegistryError> {
-        let call = ProverRegistryStub::attestedProversCall {
-            _0: address,
-        };
+    pub async fn check_register_status(
+        &self,
+        address: Address,
+    ) -> Result<Registration, RegistryError> {
+        let call = ProverRegistryStub::attestedProversCall { _0: address };
 
         let ret = self.eth.call(self.contract, &call).await?;
         Ok(Registration {

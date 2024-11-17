@@ -104,14 +104,14 @@ impl L1Client {
         log::info!("[register] waiting receipt for: {:?}", tx.tx_hash());
         let receipt = tx.get_receipt().await.map_err(EthError::from)?;
 
-        let batch_finalized = Self::get_event::<ScrollChain::FinalizeBatchWithTEEProof>(&receipt)
+        let batch_finalized = Self::get_event::<ScrollChain::VerifyBatchWithTee>(&receipt)
             .ok_or(FinalizeError::FinalizeEventNotFound)?;
 
         Result::Ok(batch_finalized.batchIndex.to())
     }
 
     pub async fn get_last_tee_finalized_batch_index(&self) -> Result<u64, EthError> {
-        let call = ScrollChain::lastTeeFinalizedBatchIndexCall {};
+        let call = ScrollChain::lastTeeVerifiedBatchIndexCall {};
         self.eth
             .call(self.scroll_chain_address, &call)
             .await

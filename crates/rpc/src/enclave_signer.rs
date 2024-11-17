@@ -1,4 +1,4 @@
-use alloy::primitives::{keccak256, B256, Address, ChainId, Signature};
+use alloy::primitives::{keccak256, Address, ChainId, Signature, B256};
 use alloy::signers::{local::PrivateKeySigner, Signer};
 use alloy::sol_types::{eip712_domain, Eip712Domain, SolStruct};
 

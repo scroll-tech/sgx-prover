@@ -12,7 +12,7 @@ pub struct BlockTracer {
 
 impl BlockTracer {
     pub fn new(l2_endpoint: String, max_workers: usize) -> Result<Self> {
-        let l2_client = L2Client::dial(&l2_endpoint).map_err(|e|{anyhow::anyhow!("{e:?}")})?;
+        let l2_client = L2Client::dial(&l2_endpoint).map_err(|e| anyhow::anyhow!("{e:?}"))?;
         let rt = tokio::runtime::Builder::new_multi_thread()
             .worker_threads(max_workers)
             .build()

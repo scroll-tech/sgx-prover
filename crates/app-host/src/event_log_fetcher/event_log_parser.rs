@@ -1,3 +1,5 @@
+use crate::types::{CommitBatchEvent, VerifyBatchEvent};
+
 use super::*;
 use alloy::{primitives::hex, rpc::types::Log, sol_types::SolCall};
 use std::sync::Arc;
@@ -78,7 +80,7 @@ impl EventLogParser {
     pub async fn parse_finalize_batch_log(
         &self,
         log: Log,
-    ) -> Result<FinalizeBatchEvent, EventLogError> {
+    ) -> Result<VerifyBatchEvent, EventLogError> {
         let log_decoded: Log<ScrollChain::FinalizeBatch> =
             log.log_decode().map_err(EthError::from)?;
 
@@ -101,7 +103,7 @@ impl EventLogParser {
         let tx_decoded = ScrollChain::finalizeBundleWithProofCall::abi_decode(&input, false)
             .map_err(EthError::from)?;
 
-        Ok(FinalizeBatchEvent {
+        Ok(VerifyBatchEvent {
             batch_index: log_decoded.data().batchIndex.to(),
             batch_hash: log_decoded.data().batchHash,
             end_batch_header: tx_decoded._batchHeader,

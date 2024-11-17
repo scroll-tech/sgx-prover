@@ -5,10 +5,10 @@ use alloy::primitives::{address, Address};
 
 use alloy::sol_types::SolValue;
 use base::eth::Eth;
+use clap::{ArgAction, Parser};
 use jsonrpsee::core::async_trait;
 use jsonrpsee::server::Server;
 use jsonrpsee::types::ErrorObjectOwned;
-use clap::{ArgAction, Parser};
 
 use scroll_da_codec::DABatch;
 use tee::{AttestationReport, SGXQuoteBuilder};
@@ -36,9 +36,10 @@ impl ScrollSgxServer for ScrollSgxServerImpl {
     }
 
     async fn generate_attestation_report(&self) -> Result<AttestationReport, ErrorObjectOwned> {
-        let quote_builder = SGXQuoteBuilder{};
+        let quote_builder = SGXQuoteBuilder {};
         let report = AttestationReport::build(&quote_builder, &self.eth, self.signer.address())
-        .await.ok_or_internal_error()?;
+            .await
+            .ok_or_internal_error()?;
         Ok(report)
     }
 
@@ -177,7 +178,7 @@ pub async fn run_server() -> anyhow::Result<SocketAddr> {
 
     let addr = server.local_addr()?;
 
-    let eth = Eth::dial(&opts.l1_endpoint, None).map_err(|e|{anyhow::anyhow!("{e:?}")})?;
+    let eth = Eth::dial(&opts.l1_endpoint, None).map_err(|e| anyhow::anyhow!("{e:?}"))?;
 
     let server_impl = ScrollSgxServerImpl { signer, eth };
     let handle = server.start(server_impl.into_rpc());

@@ -1,5 +1,5 @@
 use alloy::{
-    primitives::{Bytes, B256},
+    primitives::{Address, Bytes, B256},
     sol,
 };
 
@@ -16,6 +16,12 @@ sol!(
     "abi/ScrollChain.json"
 );
 
+pub enum ScrollChainEventLog {
+    CommitBatch(CommitBatchEvent),
+    FinalizeBundle(VerifyBatchEvent),
+    ChangeBundleSize(BundleSize),
+}
+
 pub struct CommitBatchEvent {
     pub batch_index: u64,
     pub batch_hash: BatchHash,
@@ -24,10 +30,22 @@ pub struct CommitBatchEvent {
     pub prev_batch_header: Bytes,
 }
 
-pub struct FinalizeBatchEvent {
+pub struct VerifyBatchEvent {
     pub batch_index: u64,
     pub batch_hash: BatchHash,
     pub end_batch_header: Bytes,
     pub end_state_root: StateRoot,
     pub end_withdraw_root: WithdrawRoot,
+}
+
+#[derive(Clone, Copy)]
+pub struct BundleSize {
+    pub bundle_size: u64,
+    pub start_batch_index: u64,
+}
+
+#[derive(Clone, Copy)]
+pub struct NextProver {
+    pub address: Address,
+    pub expire_time: u64,
 }

@@ -9,7 +9,7 @@ use tokio::sync::mpsc;
 use clap::{ArgAction, Parser};
 use event_log_fetcher::EventLogFetcher;
 use std::sync::Arc;
-use types::{CommitBatchEvent, FinalizeBatchEvent};
+use types::ScrollChainEventLog;
 
 mod block_tracer;
 mod config;
@@ -38,7 +38,8 @@ pub async fn start() -> Result<()> {
 
     let config = Config::from_file(opts.config_file)?;
 
-    let eth = Eth::dial(&config.l1_endpoint, Some(&config.l1_account_pk)).map_err(|e|{anyhow::anyhow!("{e:?}")})?;
+    let eth = Eth::dial(&config.l1_endpoint, Some(&config.l1_account_pk))
+        .map_err(|e| anyhow::anyhow!("{e:?}"))?;
 
     let l1_client = Arc::new(L1Client {
         eth: eth.clone(),
@@ -46,36 +47,29 @@ pub async fn start() -> Result<()> {
         prover_registry_address: config.prover_registry_address,
     });
 
-    let (commit_batch_tx, commit_batch_rx) = mpsc::channel::<CommitBatchEvent>(32);
-
-    let (finalize_batch_tx, finalize_batch_rx) = mpsc::channel::<FinalizeBatchEvent>(32);
+    let (event_log_tx, event_log_rx) = mpsc::channel::<ScrollChainEventLog>(128);
 
     let mut event_fetcher = EventLogFetcher::new(
         l1_client.clone(),
         config.scroll_chain_address,
         config.l1_event_max_size_per_fetch,
         config.l1_event_fetch_interval_seconds,
-        commit_batch_tx,
-        finalize_batch_tx,
+        event_log_tx,
     );
 
-    let fetcher_handler = tokio::spawn(async move {
-        event_fetcher.start().await
-    });
+    let fetcher_handler = tokio::spawn(async move { event_fetcher.start().await });
 
     let enclave_client = rpc::create_client(config.enclave_endpoint)?;
 
-    let mut liveness_manager = LivenessManager::new(
-        eth, 
-        config.prover_registry_address,
-        enclave_client.clone(),
-    );
+    let liveness_manager =
+        LivenessManager::new(eth, config.prover_registry_address, enclave_client.clone()).await?;
 
-    let liveness_handler = tokio::spawn(async move {
-        liveness_manager.start().await
-    });
+    let prover_address = liveness_manager.get_shared_address_info();
 
-    let task_manager = TaskManager::new(
+    let liveness_handler = tokio::spawn(async move { liveness_manager.start().await });
+
+    let mut task_manager = TaskManager::new(
+        prover_address,
         l1_client.clone(),
         enclave_client,
         config.l2_endpoint,
@@ -83,8 +77,8 @@ pub async fn start() -> Result<()> {
     )
     .await?;
 
-    TaskManager::start(task_manager, commit_batch_rx, finalize_batch_rx).await;
-    
+    let task_handler = tokio::spawn(async move { task_manager.start(event_log_rx).await });
+
     tokio::select! {
         liveness_join = liveness_handler => {
             if let Err(err) = liveness_join.expect("liveness join failed") {
@@ -94,6 +88,11 @@ pub async fn start() -> Result<()> {
         fetcher_join = fetcher_handler => {
             if let Err(err) = fetcher_join.expect("fetcher join failed") {
                 log::error!("fetcher failed: {:?}", err);
+            }
+        }
+        task_join = task_handler => {
+            if let Err(err) = task_join.expect("task join failed") {
+                log::error!("task manager failed: {:?}", err);
             }
         }
     };

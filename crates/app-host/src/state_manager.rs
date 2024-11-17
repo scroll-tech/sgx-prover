@@ -3,221 +3,40 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use base::eth::EthError;
+use batch_state::{BatchInfo, BatchState};
+use bundle_state::BundleState;
 use rpc::{ProveBatchRequest, ProveBatchResponse, ProveBundleRequest};
 
 use crate::{
     block_tracer::BlockTracer,
-    l1_client::{self, L1Client},
-    types::{BatchHash, CommitBatchEvent, FinalizeBatchEvent, StateRoot},
+    l1_client::L1Client,
+    types::{BundleSize, CommitBatchEvent, VerifyBatchEvent},
 };
-use alloy::primitives::Bytes;
-use anyhow::{bail, Ok, Result};
+use anyhow::{bail, Result};
+pub use error::*;
 
-base::stack_error! {
-    #[derive(Debug)]
-    name: StateManagerError,
-    stack_name: StateManagerErrorStack,
-    error: {
-        Eth(EthError),
-        Custom(std::borrow::Cow<'static, str>),
-    },
-    wrap: {
-    },
-    stack: {}
-}
-
-impl From<EthError> for StateManagerError {
-    fn from(value: EthError) -> Self {
-        Self::Eth(value)
-    }
-}
-
-struct BatchInfo {
-    batch_index: u64,
-    batch_header: Option<Bytes>,
-    prove_response: Option<ProveBatchResponse>,
-}
-
-struct BatchState {
-    hash_info_map: HashMap<BatchHash, BatchInfo>,
-    index_hash_map: HashMap<u64, BatchHash>,
-}
-
-impl BatchState {
-    fn new() -> Self {
-        Self {
-            hash_info_map: HashMap::new(),
-            index_hash_map: HashMap::new(),
-        }
-    }
-
-    fn create_batch(&mut self, event: &CommitBatchEvent, batch_info: BatchInfo) {
-        self.index_hash_map
-            .insert(event.batch_index, event.batch_hash);
-        self.hash_info_map.insert(event.batch_hash, batch_info);
-    }
-
-    fn update_batch_header(&mut self, batch_index: u64, batch_header: Bytes) {
-        if let Some(batch_hash) = self.index_hash_map.get(&batch_index) {
-            self.hash_info_map
-                .entry(*batch_hash)
-                .and_modify(|info| info.batch_header = Some(batch_header));
-        };
-    }
-
-    fn update_batch_proof(&mut self, prove_response: ProveBatchResponse) {
-        self.hash_info_map
-            .entry(prove_response.batch_hash)
-            .and_modify(|info| info.prove_response = Some(prove_response));
-    }
-
-    // this method requires that the batch should be proved sequentially by enclave part
-    // or it fails to get the prev_state_root
-    fn get_batch_prev_state_root(&self, batch_index: u64) -> Option<StateRoot> {
-        let prev_batch_index = batch_index - 1;
-        self.index_hash_map
-            .get(&prev_batch_index)
-            .and_then(|batch_hash| {
-                self.hash_info_map[batch_hash]
-                    .prove_response
-                    .as_ref()
-                    .and_then(|response| Some(response.post_state_root))
-            })
-    }
-
-    fn collect_batch_infos(
-        &self,
-        begin_batch_index: u64,
-        end_batch_index: u64,
-    ) -> Result<ProveBundleRequest> {
-        let mut batch_headers = vec![];
-        let mut state_roots = vec![];
-        let mut withdraw_roots = vec![];
-        let mut signatures = vec![];
-        for i in begin_batch_index..=end_batch_index {
-            let batch_hash = self.index_hash_map.get(&i);
-            if batch_hash.is_none() {
-                bail!("")
-            }
-            if let Some(batch_info) = self.hash_info_map.get(batch_hash.unwrap()) {
-                match batch_info.batch_header.as_ref() {
-                    Some(header) => {
-                        batch_headers.push(header.clone());
-                    }
-                    _ => bail!(""),
-                }
-                match batch_info.prove_response.as_ref() {
-                    Some(response) => {
-                        state_roots.push(response.post_state_root.clone());
-                        withdraw_roots.push(response.post_withdraw_root.clone());
-                        signatures.push(response.signature.clone());
-                    }
-                    _ => bail!(""),
-                }
-            } else {
-                unreachable!()
-            }
-        }
-        let request = ProveBundleRequest {
-            batch_headers,
-            state_roots,
-            withdraw_roots,
-            signatures,
-            ..Default::default()
-        };
-
-        Ok(request)
-    }
-}
-
-struct BundleState {
-    bundle_info_queue: VecDeque<BundleInfo>,
-    last_finalized_batch_index: Option<u64>,
-}
-
-#[derive(Clone)]
-struct BundleInfo {
-    begin_batch_index: u64,
-    end_batch_index: u64,
-    end_batch_header: Bytes,
-    end_state_root: StateRoot,
-}
-
-impl BundleState {
-    fn new() -> Self {
-        Self {
-            bundle_info_queue: VecDeque::new(),
-            last_finalized_batch_index: None,
-        }
-    }
-
-    // the event should be appended in sequencial order
-    fn append_event(
-        &mut self,
-        event: FinalizeBatchEvent,
-        last_finalized_batch_index: u64,
-    ) -> Result<()> {
-        if !self.bundle_info_queue.is_empty() {
-            assert!(
-                self.bundle_info_queue.front().unwrap().end_batch_index
-                    == last_finalized_batch_index,
-                "last_finalized_batch_index {} should equals to first end_batch_index {}",
-                last_finalized_batch_index,
-                self.bundle_info_queue.front().unwrap().end_batch_index
-            )
-        }
-
-        self.bundle_info_queue.push_back(BundleInfo {
-            begin_batch_index: 0,
-            end_batch_index: event.batch_index,
-            end_state_root: event.end_state_root,
-            end_batch_header: event.end_batch_header,
-        });
-        self.last_finalized_batch_index = Some(last_finalized_batch_index);
-        Ok(())
-    }
-
-    fn get_pending_bundles(&mut self) -> Option<Vec<BundleInfo>> {
-        self.last_finalized_batch_index.as_ref().map(|last_index| {
-            let mut infos = vec![];
-
-            let mut next_begin_index: u64 = 0;
-            self.bundle_info_queue.retain(|info| {
-                if info.end_batch_index < *last_index {
-                    false
-                } else if info.end_batch_index == *last_index {
-                    // notice, this block must be entered or the begin_batch_index may starts at 0
-                    // this is guarded by error check in `append_event`
-                    next_begin_index = info.end_batch_index + 1;
-                    true
-                } else {
-                    let mut cloend_info = (*info).clone();
-                    cloend_info.begin_batch_index = next_begin_index;
-                    infos.push(cloend_info);
-
-                    next_begin_index = info.end_batch_index + 1;
-                    true
-                }
-            });
-
-            infos
-        })
-    }
-}
+mod batch_state;
+mod bundle_state;
+mod error;
 
 pub struct StateManager {
     l1_client: Arc<L1Client>,
     batch_state: Mutex<BatchState>,
     bundle_state: Mutex<BundleState>,
+    last_finalized_batch_index_on_start: u64,
 }
 
 impl StateManager {
     pub fn new(l1_client: Arc<L1Client>) -> Self {
+        // todo
+        let last_finalized_batch_index = 10;
+        let bundle_sizes = vec![];
+
         Self {
             l1_client,
-            batch_state: Mutex::new(BatchState::new()),
-            bundle_state: Mutex::new(BundleState::new()),
+            batch_state: Mutex::new(BatchState::new(last_finalized_batch_index)),
+            bundle_state: Mutex::new(BundleState::new(last_finalized_batch_index, bundle_sizes)),
+            last_finalized_batch_index_on_start: last_finalized_batch_index,
         }
     }
 
@@ -249,19 +68,26 @@ impl StateManager {
 
         let block_traces = block_tracer.get_block_traces(blocks).await?;
 
-        let prev_state_root_op = {
-            let state = self.batch_state.lock().unwrap();
-            state.get_batch_prev_state_root(event.batch_index)
-        };
-        let prev_state_root = match prev_state_root_op {
-            Some(root) => root,
-            // this can happen at most once on every start
-            // todo: add count track here
-            None => block_traces[0]
-                .storage_trace
-                .root_before
-                .to_fixed_bytes()
-                .into(),
+        let prev_state_root =
+        // we need prove the exact batch as last_finalized_batch_index on start
+        // to know the paramters for building next first unfinalized batch/bundle.
+        // however, this first proved batch's prev_state_root is not known that
+        // a trick being made here.
+        if event.batch_index == self.last_finalized_batch_index_on_start {
+            block_traces[0]
+            .storage_trace
+            .root_before
+            .to_fixed_bytes()
+            .into()
+        } else {
+            let prev_state_root_op = {
+                let state = self.batch_state.lock().unwrap();
+                state.get_batch_state_root(event.batch_index - 1)
+            };
+            // theoretically, get last batch's state root must succeed since the batch event
+            // is processed in sequence, last batch's state root already being set before processing
+            // a new one.
+            prev_state_root_op.expect(&format!("failed to get prev_state_root, batch_index: {}", event.batch_index))
         };
 
         let request = ProveBatchRequest {
@@ -275,80 +101,83 @@ impl StateManager {
         Ok(request)
     }
 
-    pub async fn on_batch_proved(
-        &self,
-        response: ProveBatchResponse,
-    ) -> Result<Vec<ProveBundleRequest>, StateManagerError> {
-        {
-            let mut state = self.batch_state.lock().unwrap();
-            state.update_batch_proof(response);
-        }
-
-        self.try_build_prove_bundle_request()
+    pub fn on_batch_proved(&self, batch_index: u64, response: ProveBatchResponse) {
+        let mut state = self.batch_state.lock().unwrap();
+        state.update_batch_proof(batch_index, response);
     }
 
-    fn try_build_prove_bundle_request(&self) -> Result<Vec<ProveBundleRequest>, StateManagerError> {
-        let mut requests = vec![];
+    // fn try_build_prove_bundle_request(
+    //     &self,
+    //     batch_index: u64,
+    // ) -> Result<Option<ProveBundleRequest>, StateManagerError> {
+    //     let bundle_option = {
+    //         let mut bundle_state = self.bundle_state.lock().unwrap();
+    //         bundle_state.get_next_bundle(batch_index)
+    //     };
+    //     match bundle_option {
+    //         Some(bundle) => {
+    //             let state = self.batch_state.lock().unwrap();
+    //             let mut req = state
+    //                 .collect_batch_infos(bundle.begin_batch_index, bundle.end_batch_index)
+    //                 .ok_or_general_error()?;
 
-        let bundles = {
-            let mut bundle_state = self.bundle_state.lock().unwrap();
-            bundle_state.get_pending_bundles()
+    //             let batch_info = state.get_batch_info(bundle.begin_batch_index - 1).expect("");
+
+    //             req.last_finalized_batch_header = batch_info.batch_header.expect("");
+    //             req.prev_state_root = batch_info.prove_response.expect("").post_state_root;
+    //             Ok(Some(req))
+    //         }
+    //         None => {
+    //             log::info!("bundle is not prepared");
+    //             Ok(None)
+    //         }
+    //     }
+    // }
+
+    pub fn try_build_prove_bundle_request(&self) -> Result<ProveBundleRequest, StateManagerError> {
+        let last_verified_batch_index = {
+            let state = self.batch_state.lock().unwrap();
+            state.last_verified_batch_index
         };
-        // actually this could not be none, the check should perform beforehand.
-        if bundles.is_none() {
-            // todo: add error log.
-            return Result::Ok(requests);
-        }
 
-        for bundle in bundles.unwrap() {
-            let mut request = {
-                let state = self.batch_state.lock().unwrap();
-                match state.collect_batch_infos(bundle.begin_batch_index, bundle.end_batch_index) {
-                    Result::Ok(req) => req,
-                    Err(err) => {
-                        // todo: add log
-                        break;
-                    }
-                }
-            };
+        let bundle = {
+            let mut bundle_state = self.bundle_state.lock().unwrap();
+            bundle_state.get_next_bundle(last_verified_batch_index)?
+        };
 
-            request.last_finalized_batch_header = bundle.end_batch_header;
-            request.prev_state_root = bundle.end_state_root;
-            requests.push(request);
-        }
+        let state = self.batch_state.lock().unwrap();
+        let mut req = state
+            .collect_batch_infos(bundle.begin_batch_index, bundle.end_batch_index)
+            .ok_or_general_error()?;
 
-        Result::Ok(requests)
+        let batch_info = state
+            .get_batch_info(bundle.begin_batch_index - 1)
+            .expect(&format!(
+                "failed to get batch_info, batch_index: {}",
+                bundle.begin_batch_index - 1
+            ));
+        req.last_finalized_batch_header = batch_info.batch_header.expect(&format!(
+            "failed to get batch_header, batch_index: {}",
+            bundle.begin_batch_index - 1
+        ));
+        req.prev_state_root = batch_info
+            .prove_response
+            .expect(&format!(
+                "failed to get batch_prove_response, batch_index: {}",
+                bundle.begin_batch_index - 1
+            ))
+            .post_state_root;
+        Ok(req)
     }
 
-    pub async fn on_batch_finalize_event_received(
-        &self,
-        event: FinalizeBatchEvent,
-    ) -> Result<Vec<ProveBundleRequest>, StateManagerError> {
-        // track latest_finalized_batch_index
-        let last_finalized_batch_index = self
-            .l1_client
-            .get_last_tee_finalized_batch_index()
-            .await
-            .map_err(EthError::from)?;
+    pub fn on_batch_finalized_event_received(&self, event: VerifyBatchEvent) {
+        let mut bundle_state = self.bundle_state.lock().unwrap();
+        bundle_state.update_last_finalized_batch(event);
+        // todo: update next_prover
+    }
 
-        if event.batch_index < last_finalized_batch_index {
-            return Err(StateManagerError::Custom("test".into()));
-        }
-        let event_batch_index = event.batch_index;
-        let end_batch_header = event.end_batch_header.clone();
-        {
-            let mut bundle_state = self.bundle_state.lock().unwrap();
-            bundle_state.append_event(event, last_finalized_batch_index);
-        }
-        {
-            let mut state = self.batch_state.lock().unwrap();
-            state.update_batch_header(event_batch_index, end_batch_header);
-        }
-
-        if event_batch_index == last_finalized_batch_index {
-            Result::Ok(vec![])
-        } else {
-            self.try_build_prove_bundle_request()
-        }
+    pub fn on_bundle_size_updated_received(&self, event: BundleSize) {
+        let mut bundle_state = self.bundle_state.lock().unwrap();
+        bundle_state.update_bundle_size(event);
     }
 }
