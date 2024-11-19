@@ -4,6 +4,19 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+scroll-executor.workspace = true
+scroll-da-codec.workspace = true
+
 env_logger.workspace = true
 log.workspace = true
 rpc.workspace = true
+tee.workspace = true
+alloy.workspace = true
+base.workspace = true
+tokio.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+jsonrpsee.workspace = true
+url.workspace = true
+clap.workspace = true

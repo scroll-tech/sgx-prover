@@ -26,7 +26,7 @@ mpt-zktrie = { git = "https://github.com/scroll-tech/zkevm-circuits", branch = "
 scroll-zstd = { git = "https://github.com/scroll-tech/da-codec" }
 scroll-zstd-encoder = { git = "https://github.com/scroll-tech/da-codec", package = "encoder" }
 
-alloy = { version = "0.2", default-features = false, features = ["std", "rlp", "serde", "json"] }
+alloy = { version = "0.2", default-features = false, features = ["std", "rlp", "serde", "json", "contract"] }
 alloy-rlp = { version = "0.3", features = ["derive"] }
 
 serde = { version = "=1.0.197", features = ["derive"] }
@@ -49,8 +49,10 @@ secp256k1 = { version = "0.29", default-features = false, features = [
 ] }
 
 anyhow = "1.0.89"
+url = "2.5.2"
 jsonrpsee = { git = "https://github.com/automata-network/jsonrpsee", features = ["client", "server", "macros"] }
 tokio = { version = "1.0", features = ["macros", "net", "rt-multi-thread"] }
+clap = { version = "4", features = ["derive"] }
 
 [patch.crates-io]
 ethers-core = { git = "https://github.com/scroll-tech/ethers-rs.git", branch = "feat/rkyv" }

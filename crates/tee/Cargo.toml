@@ -13,3 +13,4 @@ alloy.workspace = true
 log.workspace = true
 automata-sgx-sdk.workspace = true
 secp256k1.workspace = true
+serde.workspace = true

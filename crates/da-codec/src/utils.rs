@@ -1,5 +1,5 @@
-use core::hash::{Hash, Hasher};
 use base::eth::primitives::{B256, U256};
+use core::hash::{Hash, Hasher};
 use scroll_zstd_encoder::{init_zstd_encoder, zstd::zstd_safe::WriteBuf, N_BLOCK_SIZE_TARGET};
 
 pub(crate) fn solidity_parse_bytes(offset: usize, slice: &[u8]) -> Vec<u8> {

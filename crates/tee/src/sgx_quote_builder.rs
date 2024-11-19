@@ -1,5 +1,5 @@
 use crate::ReportData;
-use alloy::primitives::{keccak256, Bytes, U256};
+use alloy::primitives::{keccak256, Bytes};
 
 use alloy::sol_types::SolValue;
 
@@ -20,9 +20,5 @@ impl ReportBuilder for SGXQuoteBuilder {
 
         let quote = automata_sgx_sdk::dcap::dcap_quote(report_data).unwrap();
         quote.into()
-    }
-
-    fn tee_type(&self) -> U256 {
-        U256::from_limbs_slice(&[1])
     }
 }

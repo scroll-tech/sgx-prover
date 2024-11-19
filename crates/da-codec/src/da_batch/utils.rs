@@ -26,7 +26,7 @@ use crate::{
 macro_rules! testdata {
     ($a:expr,$n:expr) => {
         include_str!(concat!(
-            "../../../../../../testdata/",
+            "../../../../../testdata/",
             $a,
             "-commit-",
             $n,

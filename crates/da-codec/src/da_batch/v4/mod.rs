@@ -91,7 +91,8 @@ impl BatchTrait for DABatch {
 
         let last_block = chunks.last().unwrap().last_block()?;
 
-        let blob_payload = BlobPayload::build(&chunks, MAX_NUM_CHUNKS, BlobPayloadCompress::ZstdV4)?;
+        let blob_payload =
+            BlobPayload::build(&chunks, MAX_NUM_CHUNKS, BlobPayloadCompress::ZstdV4)?;
 
         Ok(Self {
             version: VERSION,

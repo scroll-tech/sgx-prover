@@ -1,13 +1,17 @@
 use std::net::SocketAddr;
 
-use alloy::primitives::{address, Address};
+
+use alloy::primitives::{Address};
 
 use alloy::sol_types::SolValue;
+use base::eth::Eth;
+use clap::{Parser};
 use jsonrpsee::core::async_trait;
 use jsonrpsee::server::Server;
 use jsonrpsee::types::ErrorObjectOwned;
 
 use scroll_da_codec::DABatch;
+use tee::{AttestationReport, SGXQuoteBuilder};
 
 use crate::enclave_signer::EnclaveSigner;
 use crate::error::*;
@@ -17,6 +21,7 @@ use crate::types::*;
 use crate::utils::*;
 
 pub struct ScrollSgxServerImpl {
+    eth: Eth,
     signer: EnclaveSigner,
 }
 
@@ -30,8 +35,12 @@ impl ScrollSgxServer for ScrollSgxServerImpl {
         Ok(self.signer.address())
     }
 
-    async fn generate_attestation_report(&self) -> Result<String, ErrorObjectOwned> {
-        todo!()
+    async fn generate_attestation_report(&self) -> Result<AttestationReport, ErrorObjectOwned> {
+        let quote_builder = SGXQuoteBuilder {};
+        let report = AttestationReport::build(&quote_builder, &self.eth, self.signer.address())
+            .await
+            .ok_or_internal_error()?;
+        Ok(report)
     }
 
     async fn prove_batch(
@@ -141,21 +150,37 @@ impl ScrollSgxServer for ScrollSgxServerImpl {
     }
 }
 
+#[derive(Debug, Parser)]
+#[command(version, about = "SGX Prover Enclave Server")]
+struct Opts {
+    #[clap(long, default_value = "18232")]
+    port: u64,
+    #[clap(long, default_value = "534352")]
+    chain_id: u64,
+    #[clap(long)]
+    verifying_contract: Address,
+    #[clap(long)]
+    l1_endpoint: String,
+}
+
 pub async fn run_server() -> anyhow::Result<SocketAddr> {
-    // TODO: pass these from command line
-    let chain_id = 534352;
-    let verifying_contract = address!("B4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc");
+    let opts = Opts::parse();
+
+    let chain_id = opts.chain_id;
+    let verifying_contract = opts.verifying_contract;
 
     let signer = EnclaveSigner::new(chain_id, verifying_contract);
     log::info!("Generated new prover identity {}", signer.address());
 
     let server = Server::builder()
-        .build("127.0.0.1:1234".parse::<SocketAddr>()?)
+        .build(format!("127.0.0.1:{}", opts.port).parse::<SocketAddr>()?)
         .await?;
 
     let addr = server.local_addr()?;
 
-    let server_impl = ScrollSgxServerImpl { signer };
+    let eth = Eth::dial(&opts.l1_endpoint, None).map_err(|e| anyhow::anyhow!("{e:?}"))?;
+
+    let server_impl = ScrollSgxServerImpl { signer, eth };
     let handle = server.start(server_impl.into_rpc());
 
     handle.stopped().await;

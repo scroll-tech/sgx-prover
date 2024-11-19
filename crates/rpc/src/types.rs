@@ -32,7 +32,7 @@ sol! {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct ProveBundleRequest {
     pub last_finalized_batch_header: Bytes,
     pub prev_state_root: B256,
