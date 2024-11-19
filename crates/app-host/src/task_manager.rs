@@ -53,7 +53,7 @@ impl TaskManager {
     ) -> Result<Self> {
         let block_tracer = BlockTracer::new(l2_endpoint, max_block_trace_workers)?;
         Ok(Self {
-            state_manager: Arc::new(StateManager::new(l1_client.clone())),
+            state_manager: Arc::new(StateManager::new()),
             l1_client,
             prover_registry,
             enclave_client: Arc::new(enclave_client),

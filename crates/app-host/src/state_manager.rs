@@ -19,20 +19,18 @@ mod bundle_state;
 mod error;
 
 pub struct StateManager {
-    l1_client: Arc<L1Client>,
     batch_state: Mutex<BatchState>,
     bundle_state: Mutex<BundleState>,
     last_finalized_batch_index_on_start: u64,
 }
 
 impl StateManager {
-    pub fn new(l1_client: Arc<L1Client>) -> Self {
+    pub fn new() -> Self {
         // todo
         let last_finalized_batch_index = 10;
         let bundle_sizes = vec![];
 
         Self {
-            l1_client,
             batch_state: Mutex::new(BatchState::new(last_finalized_batch_index)),
             bundle_state: Mutex::new(BundleState::new(last_finalized_batch_index, bundle_sizes)),
             last_finalized_batch_index_on_start: last_finalized_batch_index,
